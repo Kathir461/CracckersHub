@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="page-hero">
+  <p class="eyebrow">About</p>
+  <h1>About {{ shop.name }}</h1>
+  <p>Festival shopping made clear, colorful, and simple for every customer.</p>
+</section>
+
+<section class="welcome-section">
+  <div class="section-title">
+    <p class="eyebrow">Welcome</p>
+    <h2>Welcome to {{ shop.name }}</h2>
+  </div>
+  <div class="welcome-copy">
+    <p>
+      We help customers choose festival crackers with clear product details,
+      easy quantity selection, quick checkout, and printable bills.
+    </p>
+    <p>
+      Firecracker sales must follow local safety rules and government regulations.
+      Please add your required items and submit your order enquiry. Our team will
+      confirm availability, delivery, and payment details through phone or WhatsApp.
+    </p>
+    <a class="button secondary" href="{{ url_for('contact') }}">Contact Us</a>
+  </div>
+</section>
+
+<section class="story-section">
+  <div>
+    <p class="eyebrow">Our Story</p>
+    <h2>Festival shopping made simple</h2>
+  </div>
+  <p>
+    {{ shop.name }} brings together customer-friendly product listing, offer prices,
+    order history, admin order management, and bill generation in one simple website.
+    The goal is to make festival purchases easier for families and shop owners.
+  </p>
+</section>
+
+<section class="solutions-section">
+  <div class="section-title centered">
+    <p class="eyebrow">Our Solutions</p>
+    <h2>Why shop with us</h2>
+  </div>
+  <div class="solution-grid">
+    <div>
+      <span>Quality</span>
+      <strong>Best in quality</strong>
+      <p>Well-organized products, clear pricing, and careful order confirmation.</p>
+    </div>
+    <div>
+      <span>Price</span>
+      <strong>Affordable Price</strong>
+      <p>Seasonal offers and quantity-based totals before checkout.</p>
+    </div>
+    <div>
+      <span>Billing</span>
+      <strong>Printable Bills</strong>
+      <p>Customers and admins can view bills and print them whenever needed.</p>
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="section-heading">
+  <div>
+    <p class="eyebrow">Admin</p>
+    <h1>Customer Orders</h1>
+  </div>
+  <a class="button secondary" href="{{ url_for('admin_products') }}">Manage Products</a>
+</section>
+
+<div class="table-panel">
+  <table class="product-table">
+    <thead>
+      <tr>
+        <th>Order ID</th>
+        <th>Date</th>
+        <th>Customer</th>
+        <th>Phone</th>
+        <th>Email</th>
+        <th>Total</th>
+        <th>Payment</th>
+        <th>Bill</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for order in orders %}
+      <tr>
+        <td>#{{ order.id }}</td>
+        <td>{{ order.created_at }}</td>
+        <td>{{ order.customer_name }}</td>
+        <td>{{ order.phone }}</td>
+        <td>{{ order.email }}</td>
+        <td>Rs. {{ order.total_amount }}</td>
+        <td>{{ order.payment_method|upper }} / {{ order.payment_status }}</td>
+        <td><a href="{{ url_for('admin_bill', order_id=order.id) }}">Print Bill</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="bill">
+  <div class="bill-header">
+    <div>
+      <p class="eyebrow">Bill #{{ order.id }}</p>
+      <h1>{{ shop.name }}</h1>
+      <p>{{ shop.address }} | {{ shop.phone }} | {{ shop.email }}</p>
+    </div>
+    <button class="button secondary" onclick="window.print()">Print Bill</button>
+  </div>
+
+  <div class="bill-customer">
+    <p><strong>Customer:</strong> {{ order.customer_name }}</p>
+    <p><strong>Phone:</strong> {{ order.phone }}</p>
+    <p><strong>Email:</strong> {{ order.email }}</p>
+    <p><strong>Payment:</strong> {{ order.payment_method|upper }} - {{ order.payment_status }}</p>
+  </div>
+
+  <table class="product-table">
+    <thead>
+      <tr>
+        <th>SNO</th>
+        <th>Product</th>
+        <th>Unit Price</th>
+        <th>Offer %</th>
+        <th>Qty</th>
+        <th>Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in items %}
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td>{{ item.product_name }}</td>
+        <td>Rs. {{ item.unit_price }}</td>
+        <td>{{ item.offer_percentage }}%</td>
+        <td>{{ item.quantity }}</td>
+        <td>Rs. {{ item.line_total }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr>
+        <td colspan="5">Grand Total</td>
+        <td>Rs. {{ order.total_amount }}</td>
+      </tr>
+    </tfoot>
+  </table>
+
+  <p class="bill-note no-print">
+    Email delivery is handled automatically after checkout. Use the WhatsApp button to send this bill yourself.
+  </p>
+
+  <div class="actions no-print">
+    <a class="button" target="_blank" href="https://wa.me/{{ order.phone }}?text={{ whatsapp_message|urlencode }}">Send Bill to WhatsApp</a>
+    <a class="button secondary" href="{{ url_for('customer_products') }}">Continue Shopping</a>
+  </div>
+</section>
+{% endblock %}

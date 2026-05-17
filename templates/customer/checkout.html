@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="section-heading">
+  <div>
+    <p class="eyebrow">Checkout</p>
+    <h1>Customer Details & Payment</h1>
+  </div>
+</section>
+
+<section class="split-layout">
+  <form method="post" class="form-card">
+    <label>Name<input name="customer_name" required></label>
+    <label>Phone / WhatsApp<input name="phone" required></label>
+    <label>Email<input name="email" type="email" required></label>
+    <label>Delivery Address<textarea name="address" required></textarea></label>
+    <label>Payment Method
+      <select name="payment_method" id="payment-method">
+        <option value="gpay">GPay</option>
+        <option value="card">Card</option>
+      </select>
+    </label>
+    <div class="payment-box" id="gpay-box">
+      <strong>GPay UPI:</strong> crackershub@okbank
+      <p>Use your UPI app, then place the order.</p>
+    </div>
+    <div class="payment-box hidden" id="card-box">
+      <label>Card Number<input placeholder="Demo only"></label>
+      <label>Expiry<input placeholder="MM/YY"></label>
+      <label>CVV<input placeholder="123"></label>
+    </div>
+    <button class="button" type="submit">Place Order</button>
+  </form>
+
+  <aside class="summary-card">
+    <h2>Order Summary</h2>
+    {% for item in cart %}
+      <div class="summary-row">
+        <span>{{ item.name }} x {{ item.quantity }}</span>
+        <strong>Rs. {{ item.line_total }}</strong>
+      </div>
+    {% endfor %}
+    <div class="summary-total">
+      <span>Total</span>
+      <strong>Rs. {{ "%.2f"|format(total) }}</strong>
+    </div>
+  </aside>
+</section>
+
+<script src="{{ url_for('static', filename='js/checkout.js') }}"></script>
+{% endblock %}

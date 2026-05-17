@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="section-heading">
+  <div>
+    <p class="eyebrow">Contact</p>
+    <h1>{{ shop.name }}</h1>
+  </div>
+</section>
+
+<section class="contact-grid">
+  <div>
+    <span>Phone / WhatsApp</span>
+    <strong>{{ shop.phone }}</strong>
+  </div>
+  <div>
+    <span>Email</span>
+    <strong>{{ shop.email }}</strong>
+  </div>
+  <div>
+    <span>Address</span>
+    <strong>{{ shop.address }}</strong>
+  </div>
+</section>
+{% endblock %}

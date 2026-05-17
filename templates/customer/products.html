@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="section-heading">
+  <div>
+    <p class="eyebrow">Customer Store</p>
+    <h1>Crackers Product List</h1>
+  </div>
+  <a class="button secondary" href="{{ url_for('contact') }}">Contact Shop</a>
+</section>
+
+<form method="post" class="table-panel">
+  <table class="product-table">
+    <thead>
+      <tr>
+        <th>SNO</th>
+        <th>Product Name</th>
+        <th>Product Price</th>
+        <th>Offer %</th>
+        <th>Quantity</th>
+        <th>Final Price</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for product in products %}
+      <tr data-price="{{ product.price }}" data-offer="{{ product.offer_percentage }}">
+        <td>{{ loop.index }}</td>
+        <td>
+          <strong>{{ product.name }}</strong>
+          <span>{{ product.description }}</span>
+        </td>
+        <td>Rs. {{ "%.2f"|format(product.price) }}</td>
+        <td>{{ "%.0f"|format(product.offer_percentage) }}%</td>
+        <td>
+          <input class="quantity-input" type="number" name="quantity_{{ product.id }}" min="0" value="0">
+        </td>
+        <td class="line-total">Rs. 0.00</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr>
+        <td colspan="5">Grand Total</td>
+        <td id="grand-total">Rs. 0.00</td>
+      </tr>
+    </tfoot>
+  </table>
+  <div class="actions">
+    <button class="button" type="submit">Checkout</button>
+  </div>
+</form>
+
+<script src="{{ url_for('static', filename='js/products.js') }}"></script>
+{% endblock %}

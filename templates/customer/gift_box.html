@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="page-hero gift-hero">
+  <p class="eyebrow">Gift Box</p>
+  <h1>Gift box and novelty collections</h1>
+  <p>Choose bright festival assortments, novelty crackers, and ready-to-order packs.</p>
+</section>
+
+<section class="collection-section">
+  <div class="section-title centered">
+    <p class="eyebrow">Collections</p>
+    <h2>Explore our Novelities Collections</h2>
+  </div>
+  <div class="collection-grid">
+    <article>
+      <div class="product-art art-spinner"></div>
+      <h3>Spinner</h3>
+      <p><span>Regular Price Rs. 750.00</span> Sale Price Rs. 150.00</p>
+    </article>
+    <article>
+      <div class="product-art art-strings"></div>
+      <h3>Colour Strings</h3>
+      <p><span>Regular Price Rs. 600.00</span> Sale Price Rs. 120.00</p>
+    </article>
+    <article>
+      <div class="product-art art-tin"></div>
+      <h3>Tin 6"</h3>
+      <p><span>Regular Price Rs. 900.00</span> Sale Price Rs. 180.00</p>
+    </article>
+    <article>
+      <div class="product-art art-helicopter"></div>
+      <h3>Helicopter Pack</h3>
+      <p><span>Regular Price Rs. 800.00</span> Sale Price Rs. 160.00</p>
+    </article>
+  </div>
+  <div class="center-action">
+    <a class="button" href="{{ url_for('customer_products') }}">View Full Shop</a>
+  </div>
+</section>
+
+<section class="gift-note">
+  <div>
+    <h2>Need a custom gift box?</h2>
+    <p>
+      Contact the shop with your budget and required quantity. The admin team can
+      suggest cracker combinations and prepare a bill for the final order.
+    </p>
+  </div>
+  <a class="button secondary" href="{{ url_for('contact') }}">Ask for Details</a>
+</section>
+{% endblock %}

@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="section-heading">
+  <div>
+    <p class="eyebrow">Orders</p>
+    <h1>Order History</h1>
+  </div>
+</section>
+
+<form method="post" class="lookup-form">
+  <input name="lookup" value="{{ lookup }}" placeholder="Enter phone number or email" required>
+  <button class="button" type="submit">Search</button>
+</form>
+
+{% if orders %}
+<div class="table-panel">
+  <table class="product-table">
+    <thead>
+      <tr>
+        <th>Order ID</th>
+        <th>Date</th>
+        <th>Name</th>
+        <th>Total</th>
+        <th>Payment</th>
+        <th>Bill</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for order in orders %}
+      <tr>
+        <td>#{{ order.id }}</td>
+        <td>{{ order.created_at }}</td>
+        <td>{{ order.customer_name }}</td>
+        <td>Rs. {{ order.total_amount }}</td>
+        <td>{{ order.payment_method|upper }}</td>
+        <td><a href="{{ url_for('customer_bill', order_id=order.id) }}">View Bill</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endblock %}
