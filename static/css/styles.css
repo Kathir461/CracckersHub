@@ -1210,11 +1210,9 @@ label {
     height: 30px !important;
   }
 
-  /* Hide less important columns on very small screens - keep image and offer visible */
+  /* Hide only SNO column on very small screens */
   .product-table th:nth-child(1),
-  .product-table td:nth-child(1),
-  .product-table th:nth-child(7),
-  .product-table td:nth-child(7) {
+  .product-table td:nth-child(1) {
     display: none;
   }
 
