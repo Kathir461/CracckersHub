@@ -1210,11 +1210,11 @@ label {
     height: 30px !important;
   }
 
-  /* Hide less important columns on very small screens - keep quantity and offer visible */
+  /* Hide less important columns on very small screens - keep image and offer visible */
   .product-table th:nth-child(1),
   .product-table td:nth-child(1),
-  .product-table th:nth-child(2),
-  .product-table td:nth-child(2) {
+  .product-table th:nth-child(7),
+  .product-table td:nth-child(7) {
     display: none;
   }
 
