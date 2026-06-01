@@ -29,6 +29,16 @@ python app.py
 
 6. Open `http://127.0.0.1:5000`.
 
+## Railway Deployment
+
+This repo includes a `Procfile` for Railway:
+
+```bash
+web: gunicorn app:app --bind 0.0.0.0:$PORT
+```
+
+In Railway, add the environment variables from `.env.example` in the service settings. Do not upload `.env` because it contains real passwords.
+
 ## Default Admin Login
 
 - Username: `admin`
