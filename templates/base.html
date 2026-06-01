@@ -7,6 +7,19 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
   </head>
   <body>
+    <!-- Splash Screen -->
+    <div id="splashScreen" class="splash-screen hidden">
+      <div class="splash-content">
+        <div class="splash-logo">🎆</div>
+        <h1 class="splash-title">CRACKERS HUB</h1>
+        <p class="splash-tagline">Festival Crackers & Celebrations</p>
+        <div class="splash-loader"></div>
+      </div>
+    </div>
+
+    <!-- Premium Fireworks Background Canvas -->
+    <canvas id="fireworksCanvas"></canvas>
+
     <header class="site-header">
       <a class="brand" href="{{ url_for('home') }}">{{ shop.name }}</a>
       <nav>
@@ -34,10 +47,16 @@
           <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.3 1.7.6 2.5a2 2 0 0 1-.5 2.1L8 9.5a16 16 0 0 0 6.5 6.5l1.2-1.2a2 2 0 0 1 2.1-.5c.8.3 1.6.5 2.5.6a2 2 0 0 1 1.7 2Z"></path></svg>
           <span>Contact</span>
         </a>
-        <a class="nav-link" href="{{ url_for('admin_dashboard') }}">
-          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-8 9-4.5-1.5-8-4-8-9V5l8-3 8 3Z"></path><path d="m9 12 2 2 4-4"></path></svg>
-          <span>Admin</span>
-        </a>
+        {% if session.get('admin_logged_in') %}
+          <a class="nav-link" href="{{ url_for('admin_dashboard') }}">
+            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-8 9-4.5-1.5-8-4-8-9V5l8-3 8 3Z"></path><path d="m9 12 2 2 4-4"></path></svg>
+            <span>Admin</span>
+          </a>
+          <a class="nav-link" href="{{ url_for('admin_logout') }}">
+            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><path d="m16 17 5-5-5-5"></path><path d="M21 12H9"></path></svg>
+            <span>Logout</span>
+          </a>
+        {% endif %}
       </nav>
     </header>
 
@@ -79,5 +98,280 @@
         <strong>9:00 AM - 9:00 PM</strong>
       </div>
     </footer>
+
+    <script>
+      // Splash Screen Navigation Management
+      const splashScreen = document.getElementById('splashScreen');
+      const excludedPaths = ['/checkout', '/admin', '/bill'];
+      const pageNavInProgress = { active: false };
+      
+      // Check if the page was loaded via refresh/reload
+      const isPageRefresh = performance.navigation.type === 1 || 
+                            window.performance?.getEntriesByType("navigation")?.[0]?.type === "reload";
+      
+      // Show splash on page load/navigation (but not on refresh, form submission, or excluded pages)
+      document.addEventListener('DOMContentLoaded', () => {
+        const currentPath = window.location.pathname;
+        const isExcluded = excludedPaths.some(path => currentPath.includes(path));
+        const isOrdersPage = currentPath.includes('/history') || currentPath.includes('/order');
+        
+        // Only show splash if not a page refresh, not an excluded page, and not orders page
+        if (!isExcluded && !isPageRefresh && !isOrdersPage && !pageNavInProgress.active) {
+          // Show splash screen
+          splashScreen.classList.remove('hidden');
+          
+          // Auto-hide splash after animation
+          setTimeout(() => {
+            splashScreen.classList.add('hidden');
+          }, 2600);
+        }
+      });
+      
+      // Prevent splash on form submissions (like search on orders page)
+      document.addEventListener('submit', (event) => {
+        const form = event.target;
+        const currentPath = window.location.pathname;
+        const isOrdersPage = currentPath.includes('/history') || currentPath.includes('/order');
+        
+        // If on orders/history page, don't show splash for form submission
+        if (isOrdersPage) {
+          pageNavInProgress.active = false; // Allow form to submit normally
+        }
+      });
+      
+      // Detect page navigation via link clicks
+      document.addEventListener('click', (event) => {
+        const link = event.target.closest('a[href]');
+        
+        if (link) {
+          const href = link.getAttribute('href');
+          const currentPath = window.location.pathname;
+          
+          // Check if it's an internal link, not excluded, and different from current page
+          const isInternal = href.startsWith('/') || !href.includes('://');
+          const isExcluded = excludedPaths.some(path => href.includes(path));
+          const isDifferentPage = href !== currentPath && href !== '#';
+          
+          // Show splash screen only for internal customer page navigation to different pages
+          if (isInternal && !isExcluded && isDifferentPage && !pageNavInProgress.active) {
+            event.preventDefault();
+            pageNavInProgress.active = true;
+            
+            // Show splash screen
+            splashScreen.classList.remove('hidden');
+            
+            // Navigate after splash screen animation
+            setTimeout(() => {
+              window.location.href = href;
+            }, 2600);
+          }
+        }
+      });
+
+      // Premium Fireworks Animation System
+      const canvas = document.getElementById('fireworksCanvas');
+      const ctx = canvas.getContext('2d');
+      
+      // Set canvas size
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      
+      // Particle and fireworks arrays
+      const particles = [];
+      const fireworks = [];
+      
+      // Premium color palette
+      const colors = [
+        { r: 255, g: 215, b: 0 },      // Gold
+        { r: 255, g: 140, b: 0 },      // Orange
+        { r: 255, g: 69, b: 0 },       // Red-Orange
+        { r: 220, g: 20, b: 60 },      // Crimson
+        { r: 186, g: 85, b: 211 },     // Medium Orchid
+        { r: 75, g: 0, b: 130 },       // Indigo
+        { r: 70, g: 130, b: 180 },     // Steel Blue
+      ];
+      
+      class Particle {
+        constructor(x, y, color, velocity, life) {
+          this.x = x;
+          this.y = y;
+          this.color = color;
+          this.vx = velocity.x;
+          this.vy = velocity.y;
+          this.life = life;
+          this.maxLife = life;
+          this.size = Math.random() * 3 + 1.5;
+          this.gravity = 0.15;
+          this.friction = 0.98;
+          this.glow = Math.random() * 0.5 + 0.5;
+        }
+        
+        update() {
+          this.x += this.vx;
+          this.y += this.vy;
+          this.vy += this.gravity;
+          this.vx *= this.friction;
+          this.vy *= this.friction;
+          this.life--;
+        }
+        
+        draw() {
+          const alpha = (this.life / this.maxLife) * this.glow;
+          
+          // Draw glow
+          const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size * 3);
+          gradient.addColorStop(0, `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${alpha * 0.6})`);
+          gradient.addColorStop(1, `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, 0)`);
+          ctx.fillStyle = gradient;
+          ctx.fillRect(this.x - this.size * 3, this.y - this.size * 3, this.size * 6, this.size * 6);
+          
+          // Draw core
+          ctx.fillStyle = `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${alpha})`;
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+      
+      class Firework {
+        constructor(x, y) {
+          this.x = x;
+          this.y = y;
+          this.color = colors[Math.floor(Math.random() * colors.length)];
+          this.particles = [];
+          this.life = 0;
+          this.createParticles();
+        }
+        
+        createParticles() {
+          const particleCount = 60 + Math.random() * 40;
+          
+          for (let i = 0; i < particleCount; i++) {
+            const angle = (Math.PI * 2 * i) / particleCount + (Math.random() - 0.5) * 0.4;
+            const speed = 4 + Math.random() * 6;
+            const velocity = {
+              x: Math.cos(angle) * speed,
+              y: Math.sin(angle) * speed,
+            };
+            
+            const life = 80 + Math.random() * 40;
+            const particle = new Particle(this.x, this.y, this.color, velocity, life);
+            this.particles.push(particle);
+            particles.push(particle);
+          }
+          
+          // Add secondary particles (dimmer, slower)
+          const secondaryCount = 20 + Math.random() * 30;
+          for (let i = 0; i < secondaryCount; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 2 + Math.random() * 3;
+            const velocity = {
+              x: Math.cos(angle) * speed,
+              y: Math.sin(angle) * speed,
+            };
+            
+            const life = 120 + Math.random() * 80;
+            const secondaryColor = { ...this.color };
+            secondaryColor.r = Math.min(255, secondaryColor.r + 50);
+            secondaryColor.g = Math.min(255, secondaryColor.g + 50);
+            secondaryColor.b = Math.min(255, secondaryColor.b + 50);
+            
+            const particle = new Particle(this.x, this.y, secondaryColor, velocity, life);
+            particle.glow = 0.3;
+            particle.size *= 0.6;
+            this.particles.push(particle);
+            particles.push(particle);
+          }
+        }
+        
+        update() {
+          this.life++;
+        }
+        
+        isAlive() {
+          return this.particles.some(p => p.life > 0);
+        }
+      }
+      
+      function createFirework(x, y) {
+        fireworks.push(new Firework(x, y));
+      }
+      
+      function updateParticles() {
+        particles.forEach((p, i) => {
+          p.update();
+          if (p.life <= 0) {
+            particles.splice(i, 1);
+          }
+        });
+      }
+      
+      function updateFireworks() {
+        fireworks.forEach((f, i) => {
+          f.update();
+          if (!f.isAlive()) {
+            fireworks.splice(i, 1);
+          }
+        });
+      }
+      
+      function drawParticles() {
+        particles.forEach(p => p.draw());
+      }
+      
+      function animate() {
+        // Aggressively clear canvas trails
+        if (particles.length > 0 || fireworks.length > 0) {
+          // Use strong overlay to completely clear trails while particles fade
+          ctx.fillStyle = 'rgba(10, 14, 39, 0.5)';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+        } else {
+          // When all particles are gone, clear canvas completely
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+        
+        updateParticles();
+        updateFireworks();
+        drawParticles();
+        
+        requestAnimationFrame(animate);
+      }
+      
+      // Start animation
+      animate();
+      
+      // Create fireworks at intervals
+      let lastFireworkTime = 0;
+      const fireWorkInterval = 2500 + Math.random() * 1500; // 2.5-4 seconds
+      
+      function scheduleFireworks() {
+        const now = Date.now();
+        if (now - lastFireworkTime > fireWorkInterval) {
+          const x = Math.random() * canvas.width;
+          const y = Math.random() * (canvas.height * 0.6) + canvas.height * 0.1;
+          createFirework(x, y);
+          lastFireworkTime = now;
+        }
+        requestAnimationFrame(scheduleFireworks);
+      }
+      
+      // Create initial burst
+      setTimeout(() => {
+        createFirework(canvas.width * 0.25, canvas.height * 0.3);
+        setTimeout(() => {
+          createFirework(canvas.width * 0.75, canvas.height * 0.35);
+        }, 300);
+        setTimeout(() => {
+          createFirework(canvas.width * 0.5, canvas.height * 0.25);
+        }, 600);
+        scheduleFireworks();
+      }, 500);
+      
+      // Handle window resize
+      window.addEventListener('resize', () => {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      });
+    </script>
   </body>
 </html>

@@ -49,11 +49,10 @@
   </table>
 
   <p class="bill-note no-print">
-    Email delivery is handled automatically after checkout. Use the WhatsApp button to send this bill yourself.
+    Email delivery is handled automatically after checkout.
   </p>
 
   <div class="actions no-print">
-    <a class="button" target="_blank" href="https://wa.me/{{ order.phone }}?text={{ whatsapp_message|urlencode }}">Send Bill to WhatsApp</a>
     <a class="button secondary" href="{{ url_for('customer_products') }}">Continue Shopping</a>
   </div>
 </section>

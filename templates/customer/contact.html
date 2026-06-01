@@ -8,17 +8,20 @@
 </section>
 
 <section class="contact-grid">
-  <div>
+  <a href="https://wa.me/{{ shop.phone.replace(' ', '').replace('+', '') }}" target="_blank" class="contact-card">
+    <div class="contact-icon">📱</div>
     <span>Phone / WhatsApp</span>
     <strong>{{ shop.phone }}</strong>
-  </div>
-  <div>
+  </a>
+  <a href="https://mail.google.com/mail/?view=cm&fs=1&to={{ shop.email }}&subject=Contact%20from%20Crackers%20Hub" target="_blank" class="contact-card">
+    <div class="contact-icon">✉️</div>
     <span>Email</span>
     <strong>{{ shop.email }}</strong>
-  </div>
-  <div>
+  </a>
+  <a href="https://www.google.com/maps/search/{{ shop.address.replace(' ', '+') }}" target="_blank" class="contact-card">
+    <div class="contact-icon">📍</div>
     <span>Address</span>
     <strong>{{ shop.address }}</strong>
-  </div>
+  </a>
 </section>
 {% endblock %}

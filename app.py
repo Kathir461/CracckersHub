@@ -1,7 +1,6 @@
 import os
-import smtplib
+import time
 from decimal import Decimal
-from email.message import EmailMessage
 from functools import wraps
 
 from dotenv import load_dotenv
@@ -14,6 +13,7 @@ from flask import (
     session,
     url_for,
 )
+from werkzeug.utils import secure_filename
 
 from database import close_db, get_db, init_db
 
@@ -22,6 +22,51 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "dev-secret-key")
 app.teardown_appcontext(close_db)
+
+# Image upload configuration
+UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), "static", "uploads")
+ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
+MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
+
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+
+def allowed_file(filename):
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+def save_product_image(image_file):
+    """Save uploaded image and return the URL path."""
+    if not image_file or image_file.filename == "":
+        return None
+
+    if not allowed_file(image_file.filename):
+        flash("Only image files (PNG, JPG, JPEG, GIF, WebP) are allowed.", "error")
+        return None
+
+    try:
+        # Check file size if content_length is available
+        if hasattr(image_file, 'content_length') and image_file.content_length and image_file.content_length > MAX_FILE_SIZE:
+            flash("File size exceeds 5MB limit.", "error")
+            return None
+    except Exception as e:
+        print(f"Error checking file size: {e}")
+
+    try:
+        filename = secure_filename(image_file.filename)
+        # Add timestamp to make filename unique
+        filename = f"{int(time.time())}_{filename}"
+        filepath = os.path.join(UPLOAD_FOLDER, filename)
+        
+        # Ensure upload directory exists
+        os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+        
+        image_file.save(filepath)
+        return f"/static/uploads/{filename}"
+    except Exception as e:
+        flash(f"Error uploading image: {str(e)}", "error")
+        print(f"Image upload error: {e}")
+        return None
 
 
 def shop_details():
@@ -167,22 +212,10 @@ def checkout():
 
         db.commit()
         session.pop("cart", None)
-        notification = send_bill_notifications(order_id)
-        if notification["email_sent"]:
-            flash(
-                "Order placed successfully. The bill was emailed automatically. You can send it to WhatsApp from the bill page.",
-                "success",
-            )
-        elif notification["email_reason"] == "not_configured":
-            flash(
-                "Order placed successfully. Email auto-send is missing SMTP settings, so the bill is ready here.",
-                "error",
-            )
-        else:
-            flash(
-                "Order placed successfully. Email auto-send failed. Check your Gmail app password and SMTP settings.",
-                "error",
-            )
+        flash(
+            "Order placed successfully. Your bill is ready.",
+            "success",
+        )
         return redirect(url_for("customer_bill", order_id=order_id))
 
     return render_template("customer/checkout.html", cart=cart, total=total)
@@ -195,12 +228,10 @@ def customer_bill(order_id):
         flash("Bill not found.", "error")
         return redirect(url_for("customer_products"))
 
-    whatsapp_message = build_bill_message(order, items)
     return render_template(
         "customer/bill.html",
         order=order,
         items=items,
-        whatsapp_message=whatsapp_message,
     )
 
 
@@ -285,16 +316,23 @@ def admin_products():
 def add_product():
     db = get_db()
     cursor = db.cursor()
+
+    image_url = None
+    if "image" in request.files:
+        image_file = request.files["image"]
+        image_url = save_product_image(image_file)
+
     cursor.execute(
         """
-        INSERT INTO products (name, price, offer_percentage, description)
-        VALUES (%s, %s, %s, %s)
+        INSERT INTO products (name, price, offer_percentage, description, image_url)
+        VALUES (%s, %s, %s, %s, %s)
         """,
         (
             request.form["name"].strip(),
             request.form["price"],
             request.form["offer_percentage"],
             request.form.get("description", "").strip(),
+            image_url,
         ),
     )
     db.commit()
@@ -307,10 +345,24 @@ def add_product():
 def edit_product(product_id):
     db = get_db()
     cursor = db.cursor()
+
+    # Get current product to preserve image if not updated
+    cursor.execute("SELECT image_url FROM products WHERE id = %s", (product_id,))
+    result = cursor.fetchone()
+    image_url = result[0] if result else None
+
+    # Handle new image upload
+    if "image" in request.files:
+        image_file = request.files["image"]
+        if image_file and image_file.filename != "":
+            new_image_url = save_product_image(image_file)
+            if new_image_url:
+                image_url = new_image_url
+
     cursor.execute(
         """
         UPDATE products
-        SET name = %s, price = %s, offer_percentage = %s, description = %s, is_active = %s
+        SET name = %s, price = %s, offer_percentage = %s, description = %s, image_url = %s, is_active = %s
         WHERE id = %s
         """,
         (
@@ -318,6 +370,7 @@ def edit_product(product_id):
             request.form["price"],
             request.form["offer_percentage"],
             request.form.get("description", "").strip(),
+            image_url,
             1 if request.form.get("is_active") else 0,
             product_id,
         ),
@@ -332,9 +385,9 @@ def edit_product(product_id):
 def delete_product(product_id):
     db = get_db()
     cursor = db.cursor()
-    cursor.execute("UPDATE products SET is_active = 0 WHERE id = %s", (product_id,))
+    cursor.execute("DELETE FROM products WHERE id = %s", (product_id,))
     db.commit()
-    flash("Product removed from customer listing.", "success")
+    flash("Product deleted successfully.", "success")
     return redirect(url_for("admin_products"))
 
 
@@ -382,43 +435,8 @@ def build_bill_message(order, items):
     return "\n".join(lines)
 
 
-def send_bill_notifications(order_id):
-    order, items = get_order_with_items(order_id)
-    if not order:
-        return {"email_sent": False, "email_reason": "missing_order"}
-
-    message = build_bill_message(order, items)
-    email_result = send_email_bill(order["email"], f"{shop_details()['name']} Bill #{order['id']}", message)
-    return {"email_sent": email_result["sent"], "email_reason": email_result["reason"]}
 
 
-def send_email_bill(to_email, subject, message):
-    smtp_host = os.getenv("SMTP_HOST", "").strip()
-    smtp_port = int(os.getenv("SMTP_PORT", "587"))
-    smtp_user = os.getenv("SMTP_USER", "").strip()
-    smtp_password = os.getenv("SMTP_PASSWORD", "").strip()
-    from_email = os.getenv("SMTP_FROM_EMAIL", smtp_user).strip()
-    from_name = os.getenv("SMTP_FROM_NAME", shop_details()["name"]).strip()
-
-    if not smtp_host or not smtp_user or not smtp_password or not from_email:
-        print(f"EMAIL AUTO-SEND SKIPPED: SMTP credentials not configured.\nTO {to_email}\n{message}")
-        return {"sent": False, "reason": "not_configured"}
-
-    email = EmailMessage()
-    email["Subject"] = subject
-    email["From"] = f"{from_name} <{from_email}>"
-    email["To"] = to_email
-    email.set_content(message)
-
-    try:
-        with smtplib.SMTP(smtp_host, smtp_port, timeout=12) as server:
-            server.starttls()
-            server.login(smtp_user, smtp_password)
-            server.send_message(email)
-        return {"sent": True, "reason": "sent"}
-    except (OSError, smtplib.SMTPException) as error:
-        print(f"EMAIL AUTO-SEND FAILED: {error}")
-        return {"sent": False, "reason": "failed"}
 
 
 with app.app_context():

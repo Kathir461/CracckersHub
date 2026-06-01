@@ -13,6 +13,7 @@
     <thead>
       <tr>
         <th>SNO</th>
+        <th>Image</th>
         <th>Product Name</th>
         <th>Product Price</th>
         <th>Offer %</th>
@@ -22,11 +23,18 @@
     </thead>
     <tbody>
       {% for product in products %}
-      <tr data-price="{{ product.price }}" data-offer="{{ product.offer_percentage }}">
+      <tr data-price="{{ product.price }}" data-offer="{{ product.offer_percentage }}" data-product-id="{{ product.id }}">
         <td>{{ loop.index }}</td>
         <td>
+          {% if product.image_url %}
+          <img src="{{ product.image_url }}" alt="{{ product.name }}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px;">
+          {% else %}
+          <span style="color: #999; font-size: 12px;">No image</span>
+          {% endif %}
+        </td>
+        <td>
           <strong>{{ product.name }}</strong>
-          <span>{{ product.description }}</span>
+          {% if product.description %}<br><span style="font-size: 0.9em; color: #666;">{{ product.description }}</span>{% endif %}
         </td>
         <td>Rs. {{ "%.2f"|format(product.price) }}</td>
         <td>{{ "%.0f"|format(product.offer_percentage) }}%</td>
@@ -39,7 +47,7 @@
     </tbody>
     <tfoot>
       <tr>
-        <td colspan="5">Grand Total</td>
+        <td colspan="6">Grand Total</td>
         <td id="grand-total">Rs. 0.00</td>
       </tr>
     </tfoot>

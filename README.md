@@ -38,4 +38,4 @@ Change these in `.env` before using the project seriously.
 
 ## Bill Delivery
 
-After checkout, the app generates the bill and automatically emails it when SMTP credentials are configured in `.env`. The customer can send the bill to WhatsApp manually from the bill page. Without SMTP credentials, the order still succeeds and the bill remains available on the website.
+After checkout, the app generates the bill and displays it on the website. The customer can view and print the bill directly from the bill page.

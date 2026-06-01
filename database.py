@@ -45,11 +45,24 @@ def init_db():
             price DECIMAL(10, 2) NOT NULL,
             offer_percentage DECIMAL(5, 2) NOT NULL DEFAULT 0,
             description TEXT,
+            image_url VARCHAR(255),
             is_active BOOLEAN NOT NULL DEFAULT TRUE,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
         """
     )
+
+    # Add image_url column if it doesn't exist (for existing databases)
+    try:
+        cursor.execute(
+            """
+            ALTER TABLE products
+            ADD COLUMN image_url VARCHAR(255)
+            """
+        )
+    except mysql.connector.Error:
+        # Column already exists, ignore the error
+        pass
 
     cursor.execute(
         """
