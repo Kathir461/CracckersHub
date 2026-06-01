@@ -10,11 +10,11 @@ load_dotenv()
 def get_db():
     if "db" not in g:
         g.db = mysql.connector.connect(
-            host=os.getenv("MYSQL_HOST", "bj57i6fvsto7lojnp4ee-mysql.services.clever-cloud.com"),
+            host=os.getenv("MYSQL_HOST", "localhost"),
             port=int(os.getenv("MYSQL_PORT", "3306")),
-            user=os.getenv("MYSQL_USER", "ubnflkfheevwwvez"),
-            password=os.getenv("MYSQL_PASSWORD", "VvOoMZAWy8xiUVP862Yp"),
-            database=os.getenv("MYSQL_DATABASE", "bj57i6fvsto7lojnp4ee"),
+            user=os.getenv("MYSQL_USER", "root"),
+            password=os.getenv("MYSQL_PASSWORD", ""),
+            database=os.getenv("MYSQL_DATABASE", "crackershub"),
         )
     return g.db
 
@@ -27,13 +27,13 @@ def close_db(error=None):
 
 def init_db():
     connection = mysql.connector.connect(
-        host=os.getenv("MYSQL_HOST", "bj57i6fvsto7lojnp4ee-mysql.services.clever-cloud.com"),
+        host=os.getenv("MYSQL_HOST", "localhost"),
         port=int(os.getenv("MYSQL_PORT", "3306")),
-        user=os.getenv("MYSQL_USER", "ubnflkfheevwwvez"),
-        password=os.getenv("MYSQL_PASSWORD", "VvOoMZAWy8xiUVP862Yp"),
+        user=os.getenv("MYSQL_USER", "root"),
+        password=os.getenv("MYSQL_PASSWORD", ""),
     )
     cursor = connection.cursor()
-    database = os.getenv("MYSQL_DATABASE", "bj57i6fvsto7lojnp4ee")
+    database = os.getenv("MYSQL_DATABASE", "crackershub")
     cursor.execute(f"CREATE DATABASE IF NOT EXISTS `{database}`")
     cursor.execute(f"USE `{database}`")
 
