@@ -324,6 +324,18 @@ textarea {
 
 .quantity-input {
   max-width: 110px;
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+  min-height: 38px;
+  min-width: 50px;
+}
+
+.quantity-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(255, 107, 107, 0.2);
 }
 
 .actions {
@@ -994,8 +1006,16 @@ label {
 
   .product-table input,
   .admin-table input {
-    font-size: 0.8rem;
-    padding: 4px 4px;
+    font-size: 0.9rem;
+    padding: 6px 4px;
+    min-height: 36px;
+    min-width: 50px;
+  }
+
+  .product-table input[type="number"],
+  .admin-table input[type="number"] {
+    font-size: 1rem;
+    padding: 8px 6px;
   }
 
   .product-table img,
@@ -1163,11 +1183,25 @@ label {
     word-break: break-word;
   }
 
+  /* Make Quantity column wider on mobile */
+  .product-table th:nth-child(6),
+  .product-table td:nth-child(6) {
+    min-width: 80px;
+  }
+
   .product-table input,
   .admin-table input {
-    font-size: 0.7rem;
-    padding: 3px 3px;
-    width: 100%;
+    font-size: 0.85rem;
+    padding: 6px 4px;
+    min-height: 36px;
+  }
+
+  .product-table input[type="number"],
+  .admin-table input[type="number"] {
+    font-size: 1rem;
+    padding: 8px 6px;
+    min-height: 40px;
+    min-width: 60px;
   }
 
   .product-table img,
@@ -1433,6 +1467,13 @@ label {
 
   .product-pricing .price {
     font-size: 1.1rem;
+  }
+
+  /* Tablet: Improve quantity input */
+  .product-table input[type="number"] {
+    font-size: 0.95rem;
+    padding: 6px 6px;
+    min-height: 38px;
   }
 }
 
