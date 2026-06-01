@@ -1157,6 +1157,29 @@ label {
     padding: 16px !important;
   }
 
+  /* Bill optimization for 600px */
+  .bill {
+    padding: 12px;
+    overflow-x: auto;
+  }
+
+  .bill-header {
+    gap: 8px;
+  }
+
+  .bill-customer {
+    font-size: 0.85rem;
+  }
+
+  .bill table {
+    font-size: 0.78rem;
+  }
+
+  .bill th,
+  .bill td {
+    padding: 5px 3px;
+  }
+
   .table-panel,
   .form-card,
   .summary-card,
@@ -1309,6 +1332,7 @@ label {
   /* Bill */
   .bill {
     padding: 12px;
+    overflow-x: auto;
   }
 
   .bill-header {
@@ -1316,17 +1340,47 @@ label {
     gap: 8px;
   }
 
+  .bill-header h1 {
+    font-size: 1.3rem;
+  }
+
   .bill-header h2 {
     font-size: 1.2rem;
   }
 
+  .bill-customer {
+    font-size: 0.85rem;
+  }
+
+  .bill-customer p {
+    margin: 4px 0;
+  }
+
   .bill table {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
+    width: 100%;
+    table-layout: auto;
   }
 
   .bill th,
   .bill td {
-    padding: 6px 4px;
+    padding: 4px 3px;
+    word-break: break-word;
+  }
+
+  .bill th {
+    font-weight: 700;
+    font-size: 0.7rem;
+  }
+
+  .bill tbody td {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+
+  .bill tfoot td {
+    font-weight: 700;
+    padding: 6px 3px;
   }
 
   /* Messages */
@@ -1442,6 +1496,41 @@ label {
 
   .contact-icon {
     font-size: 1.8rem;
+  }
+
+  /* Extra small screens: Bill optimization */
+  .bill {
+    padding: 8px;
+  }
+
+  .bill-header {
+    gap: 6px;
+  }
+
+  .bill-header h1 {
+    font-size: 1.1rem;
+  }
+
+  .bill-header button {
+    min-height: 32px;
+    font-size: 0.8rem;
+  }
+
+  .bill-customer {
+    font-size: 0.75rem;
+  }
+
+  .bill table {
+    font-size: 0.65rem;
+  }
+
+  .bill th {
+    font-size: 0.6rem;
+    padding: 3px 2px;
+  }
+
+  .bill td {
+    padding: 3px 2px;
   }
 }
 
