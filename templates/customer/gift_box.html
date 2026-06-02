@@ -1,51 +1,62 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="page-hero gift-hero">
-  <p class="eyebrow">Gift Box</p>
-  <h1>Gift box and novelty collections</h1>
-  <p>Choose bright festival assortments, novelty crackers, and ready-to-order packs.</p>
-</section>
-
-<section class="collection-section">
-  <div class="section-title centered">
-    <p class="eyebrow">Collections</p>
-    <h2>Explore our Novelities Collections</h2>
-  </div>
-  <div class="collection-grid">
-    <article>
-      <div class="product-art art-spinner"></div>
-      <h3>Spinner</h3>
-      <p><span>Regular Price Rs. 750.00</span> Sale Price Rs. 150.00</p>
-    </article>
-    <article>
-      <div class="product-art art-strings"></div>
-      <h3>Colour Strings</h3>
-      <p><span>Regular Price Rs. 600.00</span> Sale Price Rs. 120.00</p>
-    </article>
-    <article>
-      <div class="product-art art-tin"></div>
-      <h3>Tin 6"</h3>
-      <p><span>Regular Price Rs. 900.00</span> Sale Price Rs. 180.00</p>
-    </article>
-    <article>
-      <div class="product-art art-helicopter"></div>
-      <h3>Helicopter Pack</h3>
-      <p><span>Regular Price Rs. 800.00</span> Sale Price Rs. 160.00</p>
-    </article>
-  </div>
-  <div class="center-action">
-    <a class="button" href="{{ url_for('customer_products') }}">View Full Shop</a>
-  </div>
-</section>
-
-<section class="gift-note">
+<section class="section-heading">
   <div>
-    <h2>Need a custom gift box?</h2>
-    <p>
-      Contact the shop with your budget and required quantity. The admin team can
-      suggest cracker combinations and prepare a bill for the final order.
-    </p>
+    <p class="eyebrow">Gift Box</p>
+    <h1>Gift Box / Novelty Collections</h1>
   </div>
-  <a class="button secondary" href="{{ url_for('contact') }}">Ask for Details</a>
+  <a class="button secondary" href="{{ url_for('contact') }}">Contact Shop</a>
 </section>
+
+<form method="post" class="table-panel">
+  <table class="product-table">
+    <thead>
+      <tr>
+        <th>SNO</th>
+        <th>Image</th>
+        <th>Product Name</th>
+        <th>Product Price</th>
+        <th>Offer %</th>
+        <th>Quantity</th>
+        <th>Final Price</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for product in products %}
+      <tr data-price="{{ product.price }}" data-offer="{{ product.offer_percentage }}" data-product-id="{{ product.id }}">
+        <td>{{ loop.index }}</td>
+        <td>
+          {% if product.image_url %}
+            <img src="{{ product.image_url }}" alt="{{ product.name }}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px;">
+          {% else %}
+            <span style="color: #999; font-size: 12px;">No image</span>
+          {% endif %}
+        </td>
+        <td>
+          <strong>{{ product.name }}</strong>
+          {% if product.description %}<br><span style="font-size: 0.9em; color: #666;">{{ product.description }}</span>{% endif %}
+        </td>
+        <td>Rs. {{ "%.2f"|format(product.price) }}</td>
+        <td>{{ "%.0f"|format(product.offer_percentage) }}%</td>
+        <td>
+          <input class="quantity-input" type="number" name="quantity_{{ product.id }}" min="0" value="0">
+        </td>
+        <td class="line-total">Rs. 0.00</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr>
+        <td colspan="6">Grand Total</td>
+        <td id="grand-total">Rs. 0.00</td>
+      </tr>
+    </tfoot>
+  </table>
+  <div class="actions">
+    <button class="button" type="submit">Checkout</button>
+  </div>
+</form>
+
+<script src="{{ url_for('static', filename='js/products.js') }}"></script>
 {% endblock %}
+

@@ -98,14 +98,27 @@ def money(value):
     return Decimal(str(value)).quantize(Decimal("0.01"))
 
 
-def fetch_products(active_only=True):
+def fetch_products(active_only=True, category=None):
     db = get_db()
     cursor = db.cursor(dictionary=True)
+
+    query = "SELECT * FROM products"
+    conditions = []
+    params = []
+
     if active_only:
-        cursor.execute("SELECT * FROM products WHERE is_active = 1 ORDER BY name")
-    else:
-        cursor.execute("SELECT * FROM products ORDER BY is_active DESC, name")
+        conditions.append("is_active = 1")
+    if category:
+        conditions.append("product_category = %s")
+        params.append(category)
+
+    if conditions:
+        query += " WHERE " + " AND ".join(conditions)
+
+    query += " ORDER BY name"
+    cursor.execute(query, tuple(params))
     return cursor.fetchall()
+
 
 
 @app.route("/")
@@ -118,9 +131,51 @@ def about():
     return render_template("customer/about.html")
 
 
-@app.route("/gift-box")
+
+
+
+
+
+
+
+
+@app.route("/gift-box", methods=["GET", "POST"])
 def gift_box():
-    return render_template("customer/gift_box.html")
+    # Gift box page uses the same interactive table + checkout flow as the shop.
+    products = fetch_products(active_only=True)
+
+    if request.method == "POST":
+        selected_items = []
+        for product in products:
+            quantity_raw = request.form.get(f"quantity_{product['id']}", "0")
+            try:
+                quantity = int(quantity_raw)
+            except ValueError:
+                quantity = 0
+
+            if quantity > 0:
+                price = money(product["price"])
+                offer = Decimal(str(product["offer_percentage"]))
+                discounted_price = money(price * (Decimal("1") - offer / Decimal("100")))
+                selected_items.append(
+                    {
+                        "product_id": product["id"],
+                        "name": product["name"],
+                        "price": str(price),
+                        "offer_percentage": str(offer),
+                        "quantity": quantity,
+                        "line_total": str(money(discounted_price * quantity)),
+                    }
+                )
+
+        if not selected_items:
+            flash("Enter quantity for at least one product.", "error")
+            return redirect(url_for("gift_box"))
+
+        session["cart"] = selected_items
+        return redirect(url_for("checkout"))
+
+    return render_template("customer/gift_box.html", products=products)
 
 
 @app.route("/products", methods=["GET", "POST"])
@@ -324,15 +379,17 @@ def add_product():
 
     cursor.execute(
         """
-        INSERT INTO products (name, price, offer_percentage, description, image_url)
-        VALUES (%s, %s, %s, %s, %s)
+        INSERT INTO products (name, price, offer_percentage, description, image_url, product_category)
+        VALUES (%s, %s, %s, %s, %s, %s)
         """,
+
         (
             request.form["name"].strip(),
             request.form["price"],
             request.form["offer_percentage"],
             request.form.get("description", "").strip(),
             image_url,
+            request.form.get("product_category", "shop"),
         ),
     )
     db.commit()
@@ -359,18 +416,22 @@ def edit_product(product_id):
             if new_image_url:
                 image_url = new_image_url
 
+    # category can be missing/empty for older templates; fallback to shop
+    product_category = request.form.get("product_category") or "shop"
+
     cursor.execute(
         """
         UPDATE products
-        SET name = %s, price = %s, offer_percentage = %s, description = %s, image_url = %s, is_active = %s
+        SET name = %s, price = %s, offer_percentage = %s, description = %s, image_url = %s, product_category = %s, is_active = %s
         WHERE id = %s
-        """,
+        """
         (
             request.form["name"].strip(),
             request.form["price"],
             request.form["offer_percentage"],
             request.form.get("description", "").strip(),
             image_url,
+            product_category,
             1 if request.form.get("is_active") else 0,
             product_id,
         ),

@@ -12,6 +12,10 @@
   <input name="name" placeholder="Product name" required>
   <input name="price" type="number" step="0.01" min="0" placeholder="Price" required>
   <input name="offer_percentage" type="number" step="0.01" min="0" max="100" placeholder="Offer %" required>
+
+
+
+
   <input name="description" placeholder="Description">
   <input name="image" type="file" accept="image/*" placeholder="Product image">
   <button class="button" type="submit">Add Product</button>
@@ -29,7 +33,9 @@
         <th>Description</th>
         <th>Active</th>
         <th>Actions</th>
+
       </tr>
+
     </thead>
     <tbody>
       {% for product in products %}
@@ -48,6 +54,7 @@
         <td><input form="edit-{{ product.id }}" name="description" value="{{ product.description or '' }}"></td>
         <td><input form="edit-{{ product.id }}" name="is_active" type="checkbox" {% if product.is_active %}checked{% endif %}></td>
         <td class="row-actions">
+
           <input form="edit-{{ product.id }}" name="image" type="file" accept="image/*" style="font-size: 12px;">
           <button class="button small" form="edit-{{ product.id }}" type="submit">Save</button>
           <button class="button small danger" form="delete-{{ product.id }}" type="submit">Delete</button>
@@ -60,3 +67,4 @@
   </table>
 </div>
 {% endblock %}
+

@@ -13,7 +13,7 @@ def get_db():
             host=os.getenv("MYSQL_HOST", "localhost"),
             port=int(os.getenv("MYSQL_PORT", "3306")),
             user=os.getenv("MYSQL_USER", "root"),
-            password=os.getenv("MYSQL_PASSWORD", ""),
+            password=os.getenv("MYSQL_PASSWORD", "kathir"),
             database=os.getenv("MYSQL_DATABASE", "crackershub"),
         )
     return g.db
@@ -46,6 +46,7 @@ def init_db():
             offer_percentage DECIMAL(5, 2) NOT NULL DEFAULT 0,
             description TEXT,
             image_url VARCHAR(255),
+            product_category ENUM('shop', 'gift_box') NOT NULL DEFAULT 'shop',
             is_active BOOLEAN NOT NULL DEFAULT TRUE,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
@@ -58,6 +59,18 @@ def init_db():
             """
             ALTER TABLE products
             ADD COLUMN image_url VARCHAR(255)
+            """
+        )
+    except mysql.connector.Error:
+        # Column already exists, ignore the error
+        pass
+
+    # Add product_category column if it doesn't exist (for existing databases)
+    try:
+        cursor.execute(
+            """
+            ALTER TABLE products
+            ADD COLUMN product_category ENUM('shop', 'gift_box') NOT NULL DEFAULT 'shop'
             """
         )
     except mysql.connector.Error:
@@ -101,14 +114,15 @@ def init_db():
     if cursor.fetchone()[0] == 0:
         cursor.executemany(
             """
-            INSERT INTO products (name, price, offer_percentage, description)
-            VALUES (%s, %s, %s, %s)
+            INSERT INTO products (name, price, offer_percentage, description, product_category)
+            VALUES (%s, %s, %s, %s, %s)
             """,
             [
-                ("Sparkler Box", 120.00, 10.00, "Classic hand sparklers"),
-                ("Flower Pot Deluxe", 250.00, 15.00, "Bright fountain crackers"),
-                ("Ground Chakra", 180.00, 5.00, "Color spinning ground wheel"),
-                ("Rocket Pack", 320.00, 12.00, "Assorted sky rockets"),
+                ("Sparkler Box", 120.00, 10.00, "Classic hand sparklers", "shop"),
+                ("Flower Pot Deluxe", 250.00, 15.00, "Bright fountain crackers", "shop"),
+                ("Ground Chakra", 180.00, 5.00, "Color spinning ground wheel", "shop"),
+                ("Rocket Pack", 320.00, 12.00, "Assorted sky rockets", "shop"),
+                ("Gift Spinner Pack", 750.00, 80.00, "Gift-ready novelty spinner pack", "gift_box"),
             ],
         )
 
