@@ -71,10 +71,10 @@ def save_product_image(image_file):
 
 def shop_details():
     return {
-        "name": os.getenv("SHOP_NAME", "Crackers Hub"),
-        "phone": os.getenv("SHOP_PHONE", "9876543210"),
-        "email": os.getenv("SHOP_EMAIL", "admin@crackershub.local"),
-        "address": os.getenv("SHOP_ADDRESS", "Main Road, Sivakasi, Tamil Nadu"),
+        "name": os.getenv("SHOP_NAME", "Cracckers Hub"),
+        "phone": os.getenv("SHOP_PHONE", "8248627753"),
+        "email": os.getenv("SHOP_EMAIL", "cracckershubsivakasi@gmail.com"),
+        "address": os.getenv("SHOP_ADDRESS", "No - 3 , balan nagar , Aduthurai , Thanjavur district. 612101"),
     }
 
 
