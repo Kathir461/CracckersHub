@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="section-heading">
+  <div>
+    <p class="eyebrow">Admin</p>
+    <h1>Product-wise Sales</h1>
+  </div>
+  <a class="button secondary" href="{{ url_for('admin_dashboard') }}">Back to Dashboard</a>
+</section>
+
+<div class="table-panel">
+  <table class="product-table">
+    <thead>
+      <tr>
+        <th>SNO</th>
+        <th>Product</th>
+        <th>Quantity Sold</th>
+        <th>Total Sales (Rs.)</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% if sales_rows %}
+        {% for row in sales_rows %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td>
+            {{ row.product_name }}
+          </td>
+          <td>{{ row.total_quantity }}</td>
+          <td>Rs. {{ "%.2f"|format(row.total_sales) }}</td>
+        </tr>
+        {% endfor %}
+      {% else %}
+        <tr>
+          <td colspan="4" style="text-align:center;color:#777;">No sales found.</td>
+        </tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+

@@ -360,6 +360,30 @@ def admin_dashboard():
     )
 
 
+@app.route("/admin/sales-details")
+@admin_required
+def admin_sales_details():
+    db = get_db()
+    cursor = db.cursor(dictionary=True)
+
+    # Product-wise sales computed from order_items
+    cursor.execute(
+        """
+        SELECT
+            product_name,
+            SUM(quantity) AS total_quantity,
+            SUM(line_total) AS total_sales
+        FROM order_items
+        GROUP BY product_name
+        ORDER BY total_sales DESC
+        """
+    )
+    sales_rows = cursor.fetchall()
+
+    return render_template("admin/sales_details.html", sales_rows=sales_rows)
+
+
+
 @app.route("/admin/products")
 @admin_required
 def admin_products():

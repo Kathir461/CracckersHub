@@ -11,6 +11,9 @@
 <section class="stats-grid">
   <a href="{{ url_for('admin_products') }}"><span>Active Products</span><strong>{{ product_count }}</strong></a>
   <a href="{{ url_for('admin_orders') }}"><span>Total Orders</span><strong>{{ order_count }}</strong></a>
-  <div><span>Total Sales</span><strong>Rs. {{ sales_total }}</strong></div>
+  <a href="{{ url_for('admin_sales_details') }}" style="text-decoration:none;">
+    <div><span>Total Sales</span><strong>Rs. {{ sales_total }}</strong></div>
+  </a>
+
 </section>
 {% endblock %}
