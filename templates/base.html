@@ -10,8 +10,10 @@
     <!-- Splash Screen -->
     <div id="splashScreen" class="splash-screen hidden">
       <div class="splash-content">
-        <div class="splash-logo">🎆</div>
-        <h1 class="splash-title">CRACKERS HUB</h1>
+        <div class="splash-logo">
+          <img class="splash-logo-img" src="{{ url_for('static', filename='uploads/logo1.jpeg') }}" alt="{{ shop.name }} logo">
+        </div>
+        <h1 class="splash-title">CRACCKERS HUB</h1>
         <p class="splash-tagline">Festival Crackers & Celebrations</p>
         <div class="splash-loader"></div>
       </div>
@@ -21,7 +23,10 @@
     <canvas id="fireworksCanvas"></canvas>
 
     <header class="site-header">
-      <a class="brand" href="{{ url_for('home') }}">{{ shop.name }}</a>
+      <a class="brand" href="{{ url_for('home') }}">
+        <img class="brand-logo" src="{{ url_for('static', filename='uploads/logo1.jpeg') }}" alt="{{ shop.name }} logo">
+        <span>{{ shop.name }}</span>
+      </a>
       <nav>
         <a class="nav-link" href="{{ url_for('home') }}">
           <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m3 10 9-7 9 7"></path><path d="M5 10v10h14V10"></path><path d="M9 20v-6h6v6"></path></svg>

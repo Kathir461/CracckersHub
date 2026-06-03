@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="reference-hero">
+<section class="reference-hero" style="background-image: url('{{ url_for('static', filename='uploads/Home page2.jpg') }}');">
   <div class="hero-mark">
     <span></span>
     <span></span>
@@ -11,6 +11,7 @@
   <p class="hero-tagline">HUB OF CRACKERS</p>
   <a class="button hero-button" href="{{ url_for('customer_products') }}">Explore</a>
 </section>
+
 
 <section class="welcome-section">
   <div class="section-title">
@@ -78,3 +79,4 @@
 </section>
 
 {% endblock %}
+
