@@ -475,14 +475,19 @@ def edit_product(product_id):
     image_url = result[0] if result else None
 
     # Handle new image upload
+    # Upload new image (keeps existing if no new file is selected)
     if "image" in request.files:
         image_file = request.files["image"]
-
         if image_file and image_file.filename != "":
             new_image_url = save_product_image(image_file)
-
             if new_image_url:
                 image_url = new_image_url
+
+    # Remove existing image (set to NULL) when requested
+    if request.form.get("remove_image") == "1":
+        image_url = None
+
+
 
     # Category fallback
     product_category = request.form.get("product_category") or "shop"

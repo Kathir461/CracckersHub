@@ -57,9 +57,11 @@
 
           <input form="edit-{{ product.id }}" name="image" type="file" accept="image/*" style="font-size: 12px;">
           <button class="button small" form="edit-{{ product.id }}" type="submit">Save</button>
+          <button class="button small danger" type="submit" form="edit-{{ product.id }}" name="remove_image" value="1">Remove Image</button>
           <button class="button small danger" form="delete-{{ product.id }}" type="submit">Delete</button>
           <form id="edit-{{ product.id }}" method="post" action="{{ url_for('edit_product', product_id=product.id) }}" enctype="multipart/form-data"></form>
           <form id="delete-{{ product.id }}" method="post" action="{{ url_for('delete_product', product_id=product.id) }}"></form>
+
         </td>
       </tr>
       {% endfor %}
