@@ -36,37 +36,65 @@ def allowed_file(filename):
 
 
 def save_product_image(image_file):
-    """Save uploaded image and return the URL path."""
-    if not image_file or image_file.filename == "":
+    """Upload product image directly to Cloudinary and return secure_url."""
+    if not image_file:
+        return None
+
+    filename = getattr(image_file, "filename", None)
+    if not filename or str(filename).strip() == "":
         return None
 
     if not allowed_file(image_file.filename):
         flash("Only image files (PNG, JPG, JPEG, GIF, WebP) are allowed.", "error")
         return None
 
+    # Size guard (content_length may not exist for some file objects)
     try:
-        # Check file size if content_length is available
-        if hasattr(image_file, 'content_length') and image_file.content_length and image_file.content_length > MAX_FILE_SIZE:
+        if (
+            hasattr(image_file, "content_length")
+            and image_file.content_length
+            and image_file.content_length > MAX_FILE_SIZE
+        ):
             flash("File size exceeds 5MB limit.", "error")
             return None
-    except Exception as e:
-        print(f"Error checking file size: {e}")
+    except Exception:
+        pass
 
     try:
-        filename = secure_filename(image_file.filename)
-        # Add timestamp to make filename unique
-        filename = f"{int(time.time())}_{filename}"
-        filepath = os.path.join(UPLOAD_FOLDER, filename)
-        
-        # Ensure upload directory exists
-        os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-        
-        image_file.save(filepath)
-        return f"/static/uploads/{filename}"
+        # Configure cloudinary (uses CLOUDINARY_* env vars)
+        from cloudinary import config as cloudinary_config
+        from cloudinary.uploader import upload as cloudinary_upload
+
+        cloudinary_config.cloud_name = os.getenv("CLOUDINARY_CLOUD_NAME")
+        cloudinary_config.api_key = os.getenv("CLOUDINARY_API_KEY")
+        cloudinary_config.api_secret = os.getenv("CLOUDINARY_API_SECRET")
+
+        upload_preset = os.getenv("CLOUDINARY_UPLOAD_PRESET")
+        if not cloudinary_config.cloud_name or not cloudinary_config.api_key or not cloudinary_config.api_secret or not upload_preset:
+            flash("Cloudinary is not configured. Check CLOUDINARY_* environment variables.", "error")
+            return None
+
+        # Upload from the in-memory file (FileStorage stream)
+        # cloudinary SDK accepts file-like objects
+        # folder helps organize assets
+        result = cloudinary_upload(
+            image_file,
+            upload_preset=upload_preset,
+            resource_type="image",
+            folder="products",
+        )
+
+        secure_url = result.get("secure_url")
+        if not secure_url:
+            flash("Cloudinary upload failed (no secure_url).", "error")
+            return None
+
+        return secure_url
+
     except Exception as e:
         flash(f"Error uploading image: {str(e)}", "error")
-        print(f"Image upload error: {e}")
         return None
+
 
 
 def shop_details():
@@ -227,13 +255,14 @@ def checkout():
     if request.method == "POST":
         customer_name = request.form["customer_name"].strip()
         phone = request.form["phone"].strip()
-        email = request.form["email"].strip()
+        email = request.form["email"].strip()  # Optional
         address = request.form["address"].strip()
         payment_method = request.form["payment_method"]
 
-        if not customer_name or not phone or not email or not address:
-            flash("Please fill all customer details.", "error")
+        if not customer_name or not phone or not address:
+            flash("Please fill name, phone, and delivery address.", "error")
             return render_template("customer/checkout.html", cart=cart, total=total)
+
 
         db = get_db()
         cursor = db.cursor()
@@ -383,6 +412,13 @@ def admin_sales_details():
     return render_template("admin/sales_details.html", sales_rows=sales_rows)
 
 
+@app.route("/admin/sales_details")
+@admin_required
+def admin_sales_details_compat():
+    # Backward-compatible route for old links using underscore.
+    return redirect(url_for("admin_sales_details"))
+
+
 
 @app.route("/admin/products")
 @admin_required
@@ -424,31 +460,46 @@ def add_product():
 @app.route("/admin/products/<int:product_id>/edit", methods=["POST"])
 @admin_required
 def edit_product(product_id):
+    print("EDIT_PRODUCT_CALLED", product_id)
+
     db = get_db()
     cursor = db.cursor()
 
-    # Get current product to preserve image if not updated
-    cursor.execute("SELECT image_url FROM products WHERE id = %s", (product_id,))
+    # Get current product image
+    cursor.execute(
+        "SELECT image_url FROM products WHERE id = %s",
+        (product_id,)
+    )
+
     result = cursor.fetchone()
     image_url = result[0] if result else None
 
     # Handle new image upload
     if "image" in request.files:
         image_file = request.files["image"]
+
         if image_file and image_file.filename != "":
             new_image_url = save_product_image(image_file)
+
             if new_image_url:
                 image_url = new_image_url
 
-    # category can be missing/empty for older templates; fallback to shop
+    # Category fallback
     product_category = request.form.get("product_category") or "shop"
 
     cursor.execute(
         """
         UPDATE products
-        SET name = %s, price = %s, offer_percentage = %s, description = %s, image_url = %s, product_category = %s, is_active = %s
+        SET
+            name = %s,
+            price = %s,
+            offer_percentage = %s,
+            description = %s,
+            image_url = %s,
+            product_category = %s,
+            is_active = %s
         WHERE id = %s
-        """
+        """,
         (
             request.form["name"].strip(),
             request.form["price"],
@@ -460,8 +511,11 @@ def edit_product(product_id):
             product_id,
         ),
     )
+
     db.commit()
-    flash("Product updated.", "success")
+
+    flash("Product updated successfully.", "success")
+
     return redirect(url_for("admin_products"))
 
 

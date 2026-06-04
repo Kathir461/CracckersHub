@@ -30,7 +30,7 @@ def init_db():
         host=os.getenv("MYSQL_HOST", "localhost"),
         port=int(os.getenv("MYSQL_PORT", "3306")),
         user=os.getenv("MYSQL_USER", "root"),
-        password=os.getenv("MYSQL_PASSWORD", ""),
+        password=os.getenv("MYSQL_PASSWORD", "kathir"),
     )
     cursor = connection.cursor()
     database = os.getenv("MYSQL_DATABASE", "crackershub")
