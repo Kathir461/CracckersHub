@@ -27,7 +27,7 @@
         <td>{{ loop.index }}</td>
         <td>
           {% if product.image_url %}
-            <img src="{{ product.image_url }}" alt="{{ product.name }}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px;">
+            <img class="zoomable-image" src="{{ product.image_url }}" alt="{{ product.name }}" data-full-image-url="{{ product.image_url }}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px; cursor: zoom-in;">
           {% else %}
             <span style="color: #999; font-size: 12px;">No image</span>
           {% endif %}
@@ -58,5 +58,6 @@
 </form>
 
 <script src="{{ url_for('static', filename='js/products.js') }}"></script>
+<script src="{{ url_for('static', filename='js/image_zoom.js') }}"></script>
 {% endblock %}
 
