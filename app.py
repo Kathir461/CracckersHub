@@ -409,7 +409,11 @@ def admin_sales_details():
     )
     sales_rows = cursor.fetchall()
 
-    return render_template("admin/sales_details.html", sales_rows=sales_rows)
+    # Total sales value for footer
+    cursor.execute("SELECT COALESCE(SUM(line_total), 0) AS grand_total FROM order_items")
+    total_sales = cursor.fetchone()["grand_total"]
+
+    return render_template("admin/sales_details.html", sales_rows=sales_rows, total_sales=total_sales)
 
 
 @app.route("/admin/sales_details")
@@ -417,6 +421,7 @@ def admin_sales_details():
 def admin_sales_details_compat():
     # Backward-compatible route for old links using underscore.
     return redirect(url_for("admin_sales_details"))
+
 
 
 

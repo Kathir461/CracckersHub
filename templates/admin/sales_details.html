@@ -30,6 +30,11 @@
           <td>Rs. {{ "%.2f"|format(row.total_sales) }}</td>
         </tr>
         {% endfor %}
+
+        <tr>
+          <td colspan="3" style="text-align:right;"><strong>Total Sales</strong></td>
+          <td><strong>Rs. {{ "%.2f"|format(total_sales) }}</strong></td>
+        </tr>
       {% else %}
         <tr>
           <td colspan="4" style="text-align:center;color:#777;">No sales found.</td>
@@ -39,4 +44,5 @@
   </table>
 </div>
 {% endblock %}
+
 
