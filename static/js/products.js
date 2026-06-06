@@ -9,11 +9,10 @@ function calculateTotals() {
   let total = 0;
   rows.forEach((row) => {
     const price = Number(row.dataset.price);
-    const offer = Number(row.dataset.offer);
     const input = row.querySelector(".quantity-input");
     const quantity = Math.max(0, Number(input.value || 0));
-    const discountedPrice = price * (1 - offer / 100);
-    const lineTotal = discountedPrice * quantity;
+    const lineTotal = price * quantity;
+
     row.querySelector(".line-total").textContent = formatRupees(lineTotal);
     total += lineTotal;
   });

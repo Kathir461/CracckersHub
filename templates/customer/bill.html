@@ -1,12 +1,20 @@
 {% extends "base.html" %}
 {% block content %}
 <section class="bill">
-  <div class="bill-header">
-    <div>
+  <div class="bill-header bill-header-left">
+
+    <div class="bill-background" aria-hidden="true"></div>
+    <div class="bill-logo">
+      {% if shop.logo_url %}
+        <alt="{{ shop.name }}>
+      {% endif %}
+    </div>
+    <div class="bill-header-text">
       <p class="eyebrow">Bill #{{ order.id }}</p>
       <h1>{{ shop.name }}</h1>
       <p>{{ shop.address }} | {{ shop.phone }} | {{ shop.email }}</p>
     </div>
+
     <button class="button secondary" onclick="window.print()">Print Bill</button>
   </div>
 
@@ -23,7 +31,6 @@
         <th>SNO</th>
         <th>Product</th>
         <th>Unit Price</th>
-        <th>Offer %</th>
         <th>Qty</th>
         <th>Total</th>
       </tr>
@@ -34,7 +41,6 @@
         <td>{{ loop.index }}</td>
         <td>{{ item.product_name }}</td>
         <td>Rs. {{ item.unit_price }}</td>
-        <td>{{ item.offer_percentage }}%</td>
         <td>{{ item.quantity }}</td>
         <td>Rs. {{ item.line_total }}</td>
       </tr>

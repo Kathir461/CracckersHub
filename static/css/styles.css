@@ -454,6 +454,55 @@ label {
   display: none;
 }
 
+/* Store cart floating panel (bottom center) */
+.store-cart-panel {
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  z-index: 1500;
+  width: min(820px, 92vw);
+  pointer-events: none; /* allow only inner controls */
+}
+
+.store-cart-inner {
+  pointer-events: auto;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  border-radius: 12px;
+  box-shadow: 0 18px 55px rgba(0,0,0,0.28), inset 0 0 32px rgba(255,255,255,0.35);
+  padding: 14px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  color: #1a1a1a;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.store-cart-left {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.store-cart-items {
+  font-weight: 900;
+  color: #1a1a1a;
+}
+
+.store-cart-total {
+  font-weight: 900;
+  color: #1a1a1a;
+}
+
+.store-cart-right {
+  display: flex;
+  align-items: center;
+}
+
+
 .summary-row,
 .summary-total {
   display: flex;
@@ -1651,7 +1700,129 @@ label {
   }
 }
 
+/* Floating WhatsApp/Phone - scroll with page */
+.floating-contact {
+  position: fixed;
+  right: 14px;
+  bottom: 18px;
+  z-index: 1200;
+
+
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.floating-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.floating-icon svg {
+  width: 28px;
+  height: 28px;
+  fill: #ffffff;
+  stroke: #ffffff;
+  stroke-width: 1.2px;
+}
+
+
+.floating-icon.whatsapp {
+  background: #25D366;
+  box-shadow: 0 12px 35px rgba(37, 211, 102, 0.35);
+}
+
+.floating-icon.phone {
+  background: #111827;
+  box-shadow: 0 12px 35px rgba(17, 24, 39, 0.35);
+}
+
+.floating-icon:hover { transform: translateY(-2px); }
+
+
 @media print {
+  .bill {
+    position: relative;
+  }
+
+  /* Align bill header text to left on print */
+  .bill-header-left {
+    justify-content: flex-start !important;
+    text-align: left !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
+
+  .bill-header-text {
+    text-align: left !important;
+  }
+
+
+
+  /* Ensure any existing header flex styling doesn't affect print alignment */
+  .bill-header {
+    justify-content: flex-start !important;
+    text-align: left !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
+
+
+
+
+  /* Business-related PDF background (watermark) */
+  .bill-background {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.08;
+    background:
+      radial-gradient(circle at 15% 25%, rgba(250, 204, 21, 1) 0 12%, transparent 13%),
+      radial-gradient(circle at 85% 35%, rgba(15, 118, 110, 1) 0 10%, transparent 11%),
+      radial-gradient(circle at 55% 80%, rgba(249, 115, 22, 1) 0 14%, transparent 15%),
+      /* subtle cracker/packet stripes */
+      repeating-linear-gradient(45deg, rgba(255,107,107,1) 0 6px, transparent 6px 14px),
+      /* faint border */
+      linear-gradient(#f59e0b, #f59e0b) left/3px 100% no-repeat,
+      linear-gradient(#f59e0b, #f59e0b) right/3px 100% no-repeat;
+    filter: grayscale(100%);
+  }
+
+  .bill-header {
+    align-items: center;
+  }
+
+
+  .bill-logo {
+    position: absolute;
+    left: 22px;
+    top: 20px;
+    width: 110px;
+    height: 110px;
+    opacity: 0.08;
+    z-index: 0;
+  }
+
+  .bill-logo-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  .bill-header > div:last-child,
+  .bill-customer,
+  .product-table {
+    position: relative;
+    z-index: 1;
+  }
+
   .site-header,
   .no-print,
   .messages {

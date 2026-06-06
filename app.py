@@ -102,8 +102,12 @@ def shop_details():
         "name": os.getenv("SHOP_NAME", "Crackers Hub"),
         "phone": os.getenv("SHOP_PHONE", "8248627753"),
         "email": os.getenv("SHOP_EMAIL", "cracckershubsivakasi@gmail.com"),
-        "address": os.getenv("SHOP_ADDRESS", "No - 3 , balan nagar , Aduthurai , Thanjavur district. 612101"),
+        "address": os.getenv(
+            "SHOP_ADDRESS",
+            "No - 3 , balan nagar , Aduthurai , Thanjavur district. 612101",
+        ),
     }
+
 
 
 @app.context_processor
@@ -154,21 +158,18 @@ def home():
     return render_template("customer/home.html")
 
 
+
+
+
+
 @app.route("/about")
 def about():
     return render_template("customer/about.html")
 
 
-
-
-
-
-
-
-
-
 @app.route("/gift-box", methods=["GET", "POST"])
 def gift_box():
+
     # Gift box page uses the same interactive table + checkout flow as the shop.
     products = fetch_products(active_only=True)
 
@@ -183,16 +184,13 @@ def gift_box():
 
             if quantity > 0:
                 price = money(product["price"])
-                offer = Decimal(str(product["offer_percentage"]))
-                discounted_price = money(price * (Decimal("1") - offer / Decimal("100")))
                 selected_items.append(
                     {
                         "product_id": product["id"],
                         "name": product["name"],
                         "price": str(price),
-                        "offer_percentage": str(offer),
                         "quantity": quantity,
-                        "line_total": str(money(discounted_price * quantity)),
+                        "line_total": str(money(price * quantity)),
                     }
                 )
 
@@ -220,16 +218,13 @@ def customer_products():
 
             if quantity > 0:
                 price = money(product["price"])
-                offer = Decimal(str(product["offer_percentage"]))
-                discounted_price = money(price * (Decimal("1") - offer / Decimal("100")))
                 selected_items.append(
                     {
                         "product_id": product["id"],
                         "name": product["name"],
                         "price": str(price),
-                        "offer_percentage": str(offer),
                         "quantity": quantity,
-                        "line_total": str(money(discounted_price * quantity)),
+                        "line_total": str(money(price * quantity)),
                     }
                 )
 
@@ -288,7 +283,7 @@ def checkout():
                     item["product_id"],
                     item["name"],
                     item["price"],
-                    item["offer_percentage"],
+                    0,
                     item["quantity"],
                     item["line_total"],
                 ),

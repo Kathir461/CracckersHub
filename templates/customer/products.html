@@ -16,7 +16,6 @@
         <th>Image</th>
         <th>Product Name</th>
         <th>Product Price</th>
-        <th>Offer %</th>
         <th>Quantity</th>
         <th>Final Price</th>
       </tr>
@@ -38,7 +37,6 @@
           {% if product.description %}<br><span style="font-size: 0.9em; color: #666;">{{ product.description }}</span>{% endif %}
         </td>
         <td>Rs. {{ "%.2f"|format(product.price) }}</td>
-        <td>{{ "%.0f"|format(product.offer_percentage) }}%</td>
         <td>
           <input class="quantity-input" type="number" name="quantity_{{ product.id }}" min="0" value="0">
         </td>
@@ -48,7 +46,7 @@
     </tbody>
     <tfoot>
       <tr>
-        <td colspan="6">Grand Total</td>
+        <td colspan="5">Grand Total</td>
         <td id="grand-total">Rs. 0.00</td>
       </tr>
     </tfoot>
@@ -59,5 +57,7 @@
 </form>
 
 <script src="{{ url_for('static', filename='js/products.js') }}"></script>
+<script src="{{ url_for('static', filename='js/store_cart_panel.js') }}"></script>
 <script src="{{ url_for('static', filename='js/image_zoom.js') }}"></script>
 {% endblock %}
+

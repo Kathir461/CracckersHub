@@ -15,20 +15,14 @@
     <label>Delivery Address<textarea name="address" required></textarea></label>
     <label>Payment Method
       <select name="payment_method" id="payment-method">
-        <option value="gpay">GPay</option>
-        <option value="card">Card</option>
+        <option value="gpay">Cash On Delivery</option>
       </select>
     </label>
     <div class="payment-box" id="gpay-box">
-      <strong>GPay UPI:</strong> crackershub@okbank
-      <p>Use your UPI app, then place the order.</p>
-    </div>
-    <div class="payment-box hidden" id="card-box">
-      <label>Card Number<input placeholder="Demo only"></label>
-      <label>Expiry<input placeholder="MM/YY"></label>
-      <label>CVV<input placeholder="123"></label>
+      <strong>The seller will contact you for payment after order confirmation.</strong>
     </div>
     <button class="button" type="submit">Place Order</button>
+    <button class = "button secondary" type="Continue Shopping">Continue Shopping</button>
   </form>
 
   <aside class="summary-card">
