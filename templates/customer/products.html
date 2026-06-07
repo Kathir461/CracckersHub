@@ -57,6 +57,12 @@
 </form>
 
 <script src="{{ url_for('static', filename='js/products.js') }}"></script>
+<script>
+  // Expose current cart to checkout (used by Continue Shopping)
+  // It will be filled on submit by store_cart_panel.
+  window.__CURRENT_CART__ = window.__CURRENT_CART__ || [];
+</script>
+<script src="{{ url_for('static', filename='js/restore_cart.js') }}"></script>
 <script src="{{ url_for('static', filename='js/store_cart_panel.js') }}"></script>
 <script src="{{ url_for('static', filename='js/image_zoom.js') }}"></script>
 {% endblock %}

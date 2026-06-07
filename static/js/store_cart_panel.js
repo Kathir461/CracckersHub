@@ -29,7 +29,7 @@
     return `Rs. ${value.toFixed(2)}`;
   }
 
-  function computeCart() {
+function computeCart() {
     const rows = table.querySelectorAll('tbody tr[data-price]');
     let count = 0;
     let total = 0;
@@ -45,6 +45,7 @@
 
     return { count, total };
   }
+
 
   function showOrHide() {
     const { count, total } = computeCart();
@@ -71,11 +72,28 @@
     const form = table.closest('form');
     if (!form) return;
 
-    const { count } = computeCart();
+    const { count, total } = computeCart();
     if (count <= 0) return;
+
+    // Also expose cart for Continue Shopping
+    const cart = [];
+    rows.forEach((row) => {
+      const input = row.querySelector('.quantity-input');
+      const quantity = Math.max(0, parseInt(input?.value || '0', 10) || 0);
+      if (quantity > 0) {
+        cart.push({
+          product_id: row.dataset.productId,
+          name: row.querySelector('td:nth-child(3) strong')?.textContent?.trim() || '',
+          quantity,
+          line_total: formatRupees(Number(row.querySelector('.line-total')?.textContent?.replace(/[^0-9.]/g, '') || 0)),
+        });
+      }
+    });
+    window.__CURRENT_CART__ = cart;
 
     // Submit form
     form.requestSubmit();
   });
 })();
+
 

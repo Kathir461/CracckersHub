@@ -8,7 +8,8 @@
 </section>
 
 <section class="split-layout">
-  <form method="post" class="form-card">
+  <form method="post" class="form-card" id="checkout-form">
+
     <label>Name<input name="customer_name" required></label>
     <label>Phone / WhatsApp<input name="phone" required></label>
     <label>Email<input name="email" type="email"></label>
@@ -22,7 +23,7 @@
       <strong>The seller will contact you for payment after order confirmation.</strong>
     </div>
     <button class="button" type="submit">Place Order</button>
-    <button class = "button secondary" type="Continue Shopping">Continue Shopping</button>
+    <button class="button secondary" type="button" id="continue-shopping">Continue Shopping</button>
   </form>
 
   <aside class="summary-card">
@@ -40,5 +41,8 @@
   </aside>
 </section>
 
+
 <script src="{{ url_for('static', filename='js/checkout.js') }}"></script>
+<script src="{{ url_for('static', filename='js/continue_shopping.js') }}"></script>
 {% endblock %}
+
