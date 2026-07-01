@@ -7,7 +7,7 @@
     <title>{{ title or shop.name }}</title>
     <link rel="icon" type="image/png" sizes="64x64" href="{{ shop.icon_url }}">
     <link rel="apple-touch-icon" sizes="180x180" href="{{ shop.icon_url }}">
-    <link rel="manifest" href="{{ url_for('static', filename='manifest-admin.json') if request.path.startswith('/admin') else url_for('static', filename='manifest-customer.json') }}">
+    <link rel="manifest" href="{{ '/manifest-admin.json' if request.path.startswith('/admin') else '/manifest-customer.json' }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
   </head>
   <body>
@@ -50,6 +50,7 @@
           <span>Install App</span>
         </button>
         <span id="installHint" class="install-hint">Install will appear if your browser supports PWAs; otherwise use the browser Add to desktop menu.</span>
+        <span id="installStatus" class="install-status"></span>
         <a class="nav-link" href="{{ url_for('home') }}">
           <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m3 10 9-7 9 7"></path><path d="M5 10v10h14V10"></path><path d="M9 20v-6h6v6"></path></svg>
           <span>Home</span>
@@ -129,30 +130,47 @@
     <script src="{{ url_for('static', filename='js/floating_contact.js') }}"></script>
     <script>
       const installAppButton = document.getElementById('installAppButton');
+      const installHint = document.getElementById('installHint');
+      const installStatus = document.getElementById('installStatus');
       let deferredPrompt = null;
 
-      if ('serviceWorker' in navigator) {
+      const setInstallStatus = (text) => {
+        if (installStatus) {
+          installStatus.textContent = text;
+        }
+      };
+
+      if (!('serviceWorker' in navigator)) {
+        setInstallStatus('PWA install is not supported in this browser.');
+        if (installHint) {
+          installHint.textContent = 'Use a Chromium-based browser like Chrome or Edge for PWA install.';
+        }
+      } else {
         const isAdmin = window.location.pathname.startsWith('/admin');
         const swUrl = isAdmin ? '/admin-service-worker.js' : '/service-worker.js';
         const scope = isAdmin ? '/admin/' : '/';
 
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register(swUrl, { scope }).catch((error) => {
-            console.error('PWA service worker registration failed:', error);
-            if (installHint) {
-              installHint.textContent = 'Service worker failed to register; install from browser menu instead.';
-            }
-          });
+          navigator.serviceWorker.register(swUrl, { scope })
+            .then(() => setInstallStatus('Service worker registered.'))
+            .catch((error) => {
+              console.error('PWA service worker registration failed:', error);
+              setInstallStatus('Service worker registration failed.');
+              if (installHint) {
+                installHint.textContent = 'Install may not work; use browser menu if available.';
+              }
+            });
         });
       }
 
       if (installHint) {
-        installHint.textContent = 'Install is available from your browser menu if prompt does not appear.';
+        installHint.textContent = 'Install is available if your browser supports PWAs.';
       }
 
       window.addEventListener('beforeinstallprompt', (event) => {
         event.preventDefault();
         deferredPrompt = event;
+        setInstallStatus('Install ready. Click install button to add the app.');
         if (installHint) {
           installHint.textContent = 'Tap Install App to add CracckersHub to your desktop.';
         }
@@ -162,8 +180,9 @@
         installAppButton.addEventListener('click', async () => {
           if (!deferredPrompt) {
             const fallbackMessage = navigator.userAgent.includes('Chrome') || navigator.userAgent.includes('Edg')
-              ? 'Use your browser menu: Install app / Add to desktop.'
+              ? 'Use the browser menu to install the app.'
               : 'Use your browser menu to install this app.';
+            setInstallStatus(fallbackMessage);
             if (installHint) {
               installHint.textContent = fallbackMessage;
             }
@@ -176,12 +195,14 @@
           const { outcome } = await deferredPrompt.userChoice;
           if (outcome === 'accepted') {
             installAppButton.hidden = true;
+            setInstallStatus('App installed successfully.');
             if (installHint) {
-              installHint.textContent = 'App installed successfully.';
+              installHint.textContent = 'The app is installed.';
             }
           } else {
             installAppButton.disabled = false;
             installAppButton.innerHTML = '<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3v12"></path><path d="m7 10 5 5 5-5"></path><path d="M5 20h14"></path></svg><span>Install App</span>';
+            setInstallStatus('Install cancelled.');
             if (installHint) {
               installHint.textContent = 'Install cancelled. Use browser menu if needed.';
             }

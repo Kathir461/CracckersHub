@@ -570,6 +570,16 @@ def admin_service_worker():
     return send_from_directory(os.path.join(app.static_folder, 'sw'), 'admin-service-worker.js', mimetype='application/javascript')
 
 
+@app.route('/manifest-customer.json')
+def manifest_customer():
+    return send_from_directory(app.static_folder, 'manifest-customer.json', mimetype='application/manifest+json')
+
+
+@app.route('/manifest-admin.json')
+def manifest_admin():
+    return send_from_directory(app.static_folder, 'manifest-admin.json', mimetype='application/manifest+json')
+
+
 def get_order_with_items(order_id):
     db = get_db()
     cursor = db.cursor(dictionary=True)
