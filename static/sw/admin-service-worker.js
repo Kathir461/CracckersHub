@@ -4,7 +4,7 @@ const APP_SHELL = [
   '/admin/login',
   '/static/css/styles.css',
   '/static/js/floating_contact.js',
-  '/static/manifest-admin.json',
+  '/admin/manifest.json',
   'https://res.cloudinary.com/dkrx3kqey/image/upload/v1780567963/logo1_xm3vjy.jpg'
 ];
 

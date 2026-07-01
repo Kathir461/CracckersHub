@@ -7,7 +7,10 @@
     <title>{{ title or shop.name }}</title>
     <link rel="icon" type="image/png" sizes="64x64" href="{{ shop.icon_url }}">
     <link rel="apple-touch-icon" sizes="180x180" href="{{ shop.icon_url }}">
-    <link rel="manifest" href="{{ '/manifest-admin.json' if request.path.startswith('/admin') else '/manifest-customer.json' }}">
+    <meta name="application-name" content="CracckersHub">
+    <meta name="msapplication-TileColor" content="#ff7a00">
+    <meta name="msapplication-TileImage" content="{{ shop.icon_url }}">
+    <link rel="manifest" href="{{ '/admin/manifest.json' if request.path.startswith('/admin') else '/manifest.json' }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
   </head>
   <body>
@@ -130,6 +133,10 @@
       const installAppButton = document.getElementById('installAppButton');
       let deferredPrompt = null;
 
+      if (installAppButton) {
+        installAppButton.hidden = true;
+      }
+
       if (!('serviceWorker' in navigator)) {
         console.warn('PWA install is not supported in this browser.');
       } else {
@@ -149,6 +156,9 @@
       window.addEventListener('beforeinstallprompt', (event) => {
         event.preventDefault();
         deferredPrompt = event;
+        if (installAppButton) {
+          installAppButton.hidden = false;
+        }
         console.log('PWA install prompt is ready.');
       });
 
