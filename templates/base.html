@@ -45,10 +45,11 @@
         <span>{{ shop.name }}</span>
       </a>
       <nav>
-        <button id="installAppButton" class="install-app-button" type="button" hidden>
+        <button id="installAppButton" class="install-app-button" type="button">
           <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3v12"></path><path d="m7 10 5 5 5-5"></path><path d="M5 20h14"></path></svg>
           <span>Install App</span>
         </button>
+        <span id="installHint" class="install-hint">Install will appear if your browser supports PWAs; otherwise use the browser Add to desktop menu.</span>
         <a class="nav-link" href="{{ url_for('home') }}">
           <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m3 10 9-7 9 7"></path><path d="M5 10v10h14V10"></path><path d="M9 20v-6h6v6"></path></svg>
           <span>Home</span>
@@ -138,21 +139,34 @@
         window.addEventListener('load', () => {
           navigator.serviceWorker.register(swUrl, { scope }).catch((error) => {
             console.error('PWA service worker registration failed:', error);
+            if (installHint) {
+              installHint.textContent = 'Service worker failed to register; install from browser menu instead.';
+            }
           });
         });
+      }
+
+      if (installHint) {
+        installHint.textContent = 'Install is available from your browser menu if prompt does not appear.';
       }
 
       window.addEventListener('beforeinstallprompt', (event) => {
         event.preventDefault();
         deferredPrompt = event;
-        if (installAppButton) {
-          installAppButton.hidden = false;
+        if (installHint) {
+          installHint.textContent = 'Tap Install App to add CracckersHub to your desktop.';
         }
       });
 
       if (installAppButton) {
         installAppButton.addEventListener('click', async () => {
           if (!deferredPrompt) {
+            const fallbackMessage = navigator.userAgent.includes('Chrome') || navigator.userAgent.includes('Edg')
+              ? 'Use your browser menu: Install app / Add to desktop.'
+              : 'Use your browser menu to install this app.';
+            if (installHint) {
+              installHint.textContent = fallbackMessage;
+            }
             return;
           }
 
@@ -162,9 +176,15 @@
           const { outcome } = await deferredPrompt.userChoice;
           if (outcome === 'accepted') {
             installAppButton.hidden = true;
+            if (installHint) {
+              installHint.textContent = 'App installed successfully.';
+            }
           } else {
             installAppButton.disabled = false;
             installAppButton.innerHTML = '<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3v12"></path><path d="m7 10 5 5 5-5"></path><path d="M5 20h14"></path></svg><span>Install App</span>';
+            if (installHint) {
+              installHint.textContent = 'Install cancelled. Use browser menu if needed.';
+            }
           }
           deferredPrompt = null;
         });
