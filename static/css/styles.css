@@ -227,6 +227,12 @@ nav {
   transition: background 0.2s ease, color 0.2s ease;
 }
 
+@media (min-width: 900px) {
+  .install-app-button {
+    display: none !important;
+  }
+}
+
 .install-app-button {
   border: 1px solid rgba(255, 122, 0, 0.25);
   background: linear-gradient(135deg, rgba(255, 122, 0, 0.16), rgba(255, 122, 0, 0.25));
