@@ -3,9 +3,11 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="{{ '#0f172a' if request.path.startswith('/admin') else '#ff7a00' }}">
     <title>{{ title or shop.name }}</title>
     <link rel="icon" type="image/png" sizes="64x64" href="https://res.cloudinary.com/dkrx3kqey/image/upload/v1780567963/logo1_xm3vjy.jpg">
     <link rel="apple-touch-icon" sizes="180x180" href="https://res.cloudinary.com/dkrx3kqey/image/upload/v1780567963/logo1_xm3vjy.jpg">
+    <link rel="manifest" href="{{ url_for('static', filename='manifest-admin.json') if request.path.startswith('/admin') else url_for('static', filename='manifest-customer.json') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
   </head>
   <body>
@@ -43,6 +45,10 @@
         <span>{{ shop.name }}</span>
       </a>
       <nav>
+        <button id="installAppButton" class="install-app-button" type="button" hidden>
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3v12"></path><path d="m7 10 5 5 5-5"></path><path d="M5 20h14"></path></svg>
+          <span>Install App</span>
+        </button>
         <a class="nav-link" href="{{ url_for('home') }}">
           <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m3 10 9-7 9 7"></path><path d="M5 10v10h14V10"></path><path d="M9 20v-6h6v6"></path></svg>
           <span>Home</span>
@@ -120,6 +126,58 @@
       window.SHOP_PHONE = "{{ shop.phone }}";
     </script>
     <script src="{{ url_for('static', filename='js/floating_contact.js') }}"></script>
+    <script>
+      const installAppButton = document.getElementById('installAppButton');
+      let deferredPrompt = null;
+
+      if ('serviceWorker' in navigator) {
+        const isAdmin = window.location.pathname.startsWith('/admin');
+        const swUrl = isAdmin
+          ? '{{ url_for("static", filename="sw/admin-service-worker.js") }}'
+          : '{{ url_for("static", filename="sw/customer-service-worker.js") }}';
+        const scope = isAdmin ? '/admin' : '/';
+
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register(swUrl, { scope }).catch((error) => {
+            console.error('PWA service worker registration failed:', error);
+          });
+        });
+      }
+
+      window.addEventListener('beforeinstallprompt', (event) => {
+        event.preventDefault();
+        deferredPrompt = event;
+        if (installAppButton) {
+          installAppButton.hidden = false;
+        }
+      });
+
+      if (installAppButton) {
+        installAppButton.addEventListener('click', async () => {
+          if (!deferredPrompt) {
+            return;
+          }
+
+          installAppButton.disabled = true;
+          installAppButton.innerHTML = '<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3v12"></path><path d="m7 10 5 5 5-5"></path><path d="M5 20h14"></path></svg><span>Installing…</span>';
+          deferredPrompt.prompt();
+          const { outcome } = await deferredPrompt.userChoice;
+          if (outcome === 'accepted') {
+            installAppButton.hidden = true;
+          } else {
+            installAppButton.disabled = false;
+            installAppButton.innerHTML = '<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3v12"></path><path d="m7 10 5 5 5-5"></path><path d="M5 20h14"></path></svg><span>Install App</span>';
+          }
+          deferredPrompt = null;
+        });
+      }
+
+      window.addEventListener('appinstalled', () => {
+        if (installAppButton) {
+          installAppButton.hidden = true;
+        }
+      });
+    </script>
 
     <script>
       // Splash Screen Navigation Management

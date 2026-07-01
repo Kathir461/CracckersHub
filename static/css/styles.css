@@ -215,7 +215,8 @@ nav {
   flex-wrap: wrap;
 }
 
-.nav-link {
+.nav-link,
+.install-app-button {
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -226,12 +227,22 @@ nav {
   transition: background 0.2s ease, color 0.2s ease;
 }
 
-.nav-link:hover {
+.install-app-button {
+  border: 1px solid rgba(255, 122, 0, 0.25);
+  background: linear-gradient(135deg, rgba(255, 122, 0, 0.16), rgba(255, 122, 0, 0.25));
+  color: var(--accent);
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.nav-link:hover,
+.install-app-button:hover {
   background: #fff2ef;
   color: var(--accent);
 }
 
-.nav-link svg {
+.nav-link svg,
+.install-app-button svg {
   width: 18px;
   height: 18px;
   stroke: currentColor;
@@ -240,6 +251,11 @@ nav {
   stroke-linejoin: round;
   fill: none;
   flex: 0 0 auto;
+}
+
+.nav-link:hover {
+  background: #fff2ef;
+  color: var(--accent);
 }
 
 .page {
