@@ -10,6 +10,7 @@ from flask import (
     redirect,
     render_template,
     request,
+    send_from_directory,
     session,
     url_for,
 )
@@ -99,7 +100,7 @@ def save_product_image(image_file):
 
 def shop_details():
     return {
-        "name": os.getenv("SHOP_NAME", "Crackers Hub"),
+        "name": os.getenv("SHOP_NAME", "Cracckers Hub"),
         "phone": os.getenv("SHOP_PHONE", "8248627753"),
         "email": os.getenv("SHOP_EMAIL", "cracckershubsivakasi@gmail.com"),
         "address": os.getenv(
@@ -557,6 +558,16 @@ def admin_bill(order_id):
         flash("Order not found.", "error")
         return redirect(url_for("admin_orders"))
     return render_template("admin/bill.html", order=order, items=items)
+
+
+@app.route('/service-worker.js')
+def service_worker():
+    return send_from_directory(os.path.join(app.static_folder, 'sw'), 'customer-service-worker.js', mimetype='application/javascript')
+
+
+@app.route('/admin-service-worker.js')
+def admin_service_worker():
+    return send_from_directory(os.path.join(app.static_folder, 'sw'), 'admin-service-worker.js', mimetype='application/javascript')
 
 
 def get_order_with_items(order_id):

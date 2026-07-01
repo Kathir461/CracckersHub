@@ -1,5 +1,5 @@
 {
-  "name": "Crackers Hub Admin",
+  "name": "CracckersHub Admin",
   "short_name": "Admin",
   "description": "Admin dashboard for managing products, orders, and sales.",
   "start_url": "/admin",

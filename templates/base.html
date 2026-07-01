@@ -132,10 +132,8 @@
 
       if ('serviceWorker' in navigator) {
         const isAdmin = window.location.pathname.startsWith('/admin');
-        const swUrl = isAdmin
-          ? '{{ url_for("static", filename="sw/admin-service-worker.js") }}'
-          : '{{ url_for("static", filename="sw/customer-service-worker.js") }}';
-        const scope = isAdmin ? '/admin' : '/';
+        const swUrl = isAdmin ? '/admin-service-worker.js' : '/service-worker.js';
+        const scope = isAdmin ? '/admin/' : '/';
 
         window.addEventListener('load', () => {
           navigator.serviceWorker.register(swUrl, { scope }).catch((error) => {
