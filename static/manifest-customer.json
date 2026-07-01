@@ -10,14 +10,14 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "/static/icons/customer/icon-192.svg",
+      "src": "https://res.cloudinary.com/dkrx3kqey/image/upload/v1780567963/logo1_xm3vjy.jpg",
       "sizes": "192x192",
-      "type": "image/svg+xml"
+      "type": "image/jpeg"
     },
     {
-      "src": "/static/icons/customer/icon-512.svg",
+      "src": "https://res.cloudinary.com/dkrx3kqey/image/upload/v1780567963/logo1_xm3vjy.jpg",
       "sizes": "512x512",
-      "type": "image/svg+xml"
+      "type": "image/jpeg"
     }
   ]
 }

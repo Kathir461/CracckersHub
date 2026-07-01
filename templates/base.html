@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="{{ '#0f172a' if request.path.startswith('/admin') else '#ff7a00' }}">
     <title>{{ title or shop.name }}</title>
-    <link rel="icon" type="image/png" sizes="64x64" href="https://res.cloudinary.com/dkrx3kqey/image/upload/v1780567963/logo1_xm3vjy.jpg">
-    <link rel="apple-touch-icon" sizes="180x180" href="https://res.cloudinary.com/dkrx3kqey/image/upload/v1780567963/logo1_xm3vjy.jpg">
+    <link rel="icon" type="image/png" sizes="64x64" href="{{ shop.icon_url }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ shop.icon_url }}">
     <link rel="manifest" href="{{ url_for('static', filename='manifest-admin.json') if request.path.startswith('/admin') else url_for('static', filename='manifest-customer.json') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
   </head>
@@ -28,7 +28,7 @@
     <div id="splashScreen" class="splash-screen hidden">
       <div class="splash-content">
         <div class="splash-logo">
-          <img class="splash-logo-img" src="https://res.cloudinary.com/dkrx3kqey/image/upload/v1780567963/logo1_xm3vjy.jpg" alt="{{ shop.name }} logo">
+          <img class="splash-logo-img" src="{{ shop.icon_url }}" alt="{{ shop.name }} logo">
         </div>
         <h1 class="splash-title">CRACCKERS HUB</h1>
         <p class="splash-tagline">Festival Crackers & Celebrations</p>
@@ -41,7 +41,7 @@
 
     <header class="site-header">
       <a class="brand" href="{{ url_for('home') }}">
-        <img class="brand-logo" src="https://res.cloudinary.com/dkrx3kqey/image/upload/v1780567963/logo1_xm3vjy.jpg" alt="{{ shop.name }} logo">
+        <img class="brand-logo" src="{{ shop.icon_url }}" alt="{{ shop.name }} logo">
         <span>{{ shop.name }}</span>
       </a>
       <nav>

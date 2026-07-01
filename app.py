@@ -106,6 +106,10 @@ def shop_details():
             "SHOP_ADDRESS",
             "No - 3 , balan nagar , Aduthurai , Thanjavur district. 612101",
         ),
+        "icon_url": os.getenv(
+            "APP_ICON_URL",
+            "https://res.cloudinary.com/dkrx3kqey/image/upload/v1780567963/logo1_xm3vjy.jpg",
+        ),
     }
 
 
