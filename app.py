@@ -590,15 +590,6 @@ def manifest_admin_alias():
     return manifest_admin()
 
 
-@app.route('/manifest-customer.json')
-def manifest_customer_alias():
-    return manifest_customer()
-
-
-@app.route('/manifest-admin.json')
-def manifest_admin_alias():
-    return manifest_admin()
-
 
 def get_order_with_items(order_id):
     db = get_db()
