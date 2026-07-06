@@ -1429,6 +1429,42 @@ label {
     letter-spacing: 0.04em;
   }
 
+  .shop-products-table {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .shop-products-table .product-table {
+    display: table;
+    min-width: 620px;
+    border-collapse: collapse;
+    border-spacing: 0;
+  }
+
+  .shop-products-table .product-table thead {
+    display: table-header-group;
+  }
+
+  .shop-products-table .product-table tr {
+    display: table-row;
+    margin: 0;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+    box-shadow: none;
+  }
+
+  .shop-products-table .product-table td {
+    display: table-cell;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    padding: 8px 6px;
+  }
+
+  .shop-products-table .product-table td::before {
+    content: none;
+  }
+
   /* Make Quantity column wider on mobile */
   .product-table th:nth-child(6),
   .product-table td:nth-child(6) {
