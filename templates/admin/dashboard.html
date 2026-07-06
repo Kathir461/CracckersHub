@@ -1,19 +1,71 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="section-heading">
+<section class="admin-hero">
   <div>
     <p class="eyebrow">Admin Panel</p>
-    <h1>Dashboard</h1>
+    <h1>Operations Dashboard</h1>
+    <p>Monitor inventory, orders, and revenue from one place.</p>
   </div>
-  <a class="button secondary" href="{{ url_for('admin_logout') }}">Logout</a>
+  <div class="admin-actions">
+    <a class="admin-btn" href="{{ url_for('admin_products') }}">Manage Inventory</a>
+    <a class="admin-btn secondary" href="{{ url_for('admin_orders') }}">View Orders</a>
+  </div>
 </section>
 
-<section class="stats-grid">
-  <a href="{{ url_for('admin_products') }}"><span>Active Products</span><strong>{{ product_count }}</strong></a>
-  <a href="{{ url_for('admin_orders') }}"><span>Total Orders</span><strong>{{ order_count }}</strong></a>
-  <a href="{{ url_for('admin_sales_details') }}" style="text-decoration:none;">
-    <div><span>Total Sales</span><strong>Rs. {{ sales_total }}</strong></div>
+<section class="admin-stats-grid">
+  <a class="stat-card" href="{{ url_for('admin_products') }}">
+    <div class="stat-icon">📦</div>
+    <small>Active Products</small>
+    <strong>{{ product_count }}</strong>
+    <small>Available listings</small>
   </a>
+  <a class="stat-card" href="{{ url_for('admin_orders') }}">
+    <div class="stat-icon">🧾</div>
+    <small>Total Orders</small>
+    <strong>{{ order_count }}</strong>
+    <small>Bookings received</small>
+  </a>
+  <a class="stat-card" href="{{ url_for('admin_sales_details') }}">
+    <div class="stat-icon">💰</div>
+    <small>Total Sales</small>
+    <strong>Rs. {{ sales_total }}</strong>
+    <small>Revenue to date</small>
+  </a>
+  <a class="stat-card" href="{{ url_for('admin_products') }}">
+    <div class="stat-icon">⚠️</div>
+    <small>Low Stock</small>
+    <strong>{{ low_stock_count }}</strong>
+    <small>Needs attention</small>
+  </a>
+</section>
 
+<section class="admin-panel">
+  <div class="admin-actions">
+    <a class="admin-btn secondary" href="{{ url_for('admin_products') }}">Out of Stock: {{ out_of_stock_count }}</a>
+    <a class="admin-btn secondary" href="{{ url_for('admin_products') }}">Inventory Qty: {{ inventory_quantity }}</a>
+  </div>
+  <div class="table-panel">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Metric</th>
+          <th>Status</th>
+          <th>Quick Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Inventory Health</td>
+          <td><span class="badge {{ 'warning' if low_stock_count else 'success' }}">{{ 'Needs restock' if low_stock_count else 'Healthy' }}</span></td>
+          <td><a class="admin-btn secondary" href="{{ url_for('admin_products') }}">Open Products</a></td>
+        </tr>
+        <tr>
+          <td>Order Flow</td>
+          <td><span class="badge neutral">Live</span></td>
+          <td><a class="admin-btn secondary" href="{{ url_for('admin_orders') }}">Open Orders</a></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </section>
 {% endblock %}

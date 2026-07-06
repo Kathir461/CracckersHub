@@ -34,6 +34,9 @@
         <td>
           <strong>{{ product.name }}</strong>
           {% if product.description %}<br><span style="font-size: 0.9em; color: #666;">{{ product.description }}</span>{% endif %}
+          {% set stock_status = get_stock_status(product) %}
+          <div class="{{ stock_status['class'] }}" style="margin-top: 6px; display: inline-block;">{{ stock_status['label'] }}</div>
+          <div style="margin-top: 4px; font-size: 0.9em; color: #666;">Stock: {{ product.stock_quantity or 0 }}</div>
         </td>
         <td>Rs. {{ "%.2f"|format(product.price) }}</td>
         <td>

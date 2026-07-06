@@ -47,35 +47,27 @@ def init_db():
             description TEXT,
             image_url VARCHAR(255),
             product_category ENUM('shop', 'gift_box') NOT NULL DEFAULT 'shop',
+            stock_quantity INT NOT NULL DEFAULT 0,
+            low_stock_limit INT NOT NULL DEFAULT 10,
             is_active BOOLEAN NOT NULL DEFAULT TRUE,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
         """
     )
 
-    # Add image_url column if it doesn't exist (for existing databases)
-    try:
-        cursor.execute(
-            """
-            ALTER TABLE products
-            ADD COLUMN image_url VARCHAR(255)
-            """
-        )
-    except mysql.connector.Error:
-        # Column already exists, ignore the error
-        pass
+    for alter_sql in [
+        "ALTER TABLE products ADD COLUMN image_url VARCHAR(255)",
+        "ALTER TABLE products ADD COLUMN product_category ENUM('shop', 'gift_box') NOT NULL DEFAULT 'shop'",
+        "ALTER TABLE products ADD COLUMN stock_quantity INT NOT NULL DEFAULT 0",
+        "ALTER TABLE products ADD COLUMN low_stock_limit INT NOT NULL DEFAULT 10",
+    ]:
+        try:
+            cursor.execute(alter_sql)
+        except mysql.connector.Error:
+            pass
 
-    # Add product_category column if it doesn't exist (for existing databases)
-    try:
-        cursor.execute(
-            """
-            ALTER TABLE products
-            ADD COLUMN product_category ENUM('shop', 'gift_box') NOT NULL DEFAULT 'shop'
-            """
-        )
-    except mysql.connector.Error:
-        # Column already exists, ignore the error
-        pass
+    cursor.execute("UPDATE products SET stock_quantity = COALESCE(stock_quantity, 0)")
+    cursor.execute("UPDATE products SET low_stock_limit = COALESCE(low_stock_limit, 10)")
 
     cursor.execute(
         """
@@ -114,15 +106,15 @@ def init_db():
     if cursor.fetchone()[0] == 0:
         cursor.executemany(
             """
-            INSERT INTO products (name, price, offer_percentage, description, product_category)
-            VALUES (%s, %s, %s, %s, %s)
+            INSERT INTO products (name, price, offer_percentage, description, product_category, stock_quantity, low_stock_limit)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
             """,
             [
-                ("Sparkler Box", 120.00, 10.00, "Classic hand sparklers", "shop"),
-                ("Flower Pot Deluxe", 250.00, 15.00, "Bright fountain crackers", "shop"),
-                ("Ground Chakra", 180.00, 5.00, "Color spinning ground wheel", "shop"),
-                ("Rocket Pack", 320.00, 12.00, "Assorted sky rockets", "shop"),
-                ("Gift Spinner Pack", 750.00, 80.00, "Gift-ready novelty spinner pack", "gift_box"),
+                ("Sparkler Box", 120.00, 10.00, "Classic hand sparklers", "shop", 45, 10),
+                ("Flower Pot Deluxe", 250.00, 15.00, "Bright fountain crackers", "shop", 20, 8),
+                ("Ground Chakra", 180.00, 5.00, "Color spinning ground wheel", "shop", 30, 10),
+                ("Rocket Pack", 320.00, 12.00, "Assorted sky rockets", "shop", 15, 5),
+                ("Gift Spinner Pack", 750.00, 80.00, "Gift-ready novelty spinner pack", "gift_box", 25, 6),
             ],
         )
 

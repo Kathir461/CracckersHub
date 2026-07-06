@@ -117,7 +117,10 @@ def shop_details():
 
 @app.context_processor
 def inject_globals():
-    return {"shop": shop_details()}
+    return {
+        "shop": shop_details(),
+        "get_stock_status": get_stock_status,
+    }
 
 
 def admin_required(view):
@@ -133,6 +136,16 @@ def admin_required(view):
 
 def money(value):
     return Decimal(str(value)).quantize(Decimal("0.01"))
+
+
+def get_stock_status(product):
+    stock = int(product.get("stock_quantity", 0) or 0)
+    limit = int(product.get("low_stock_limit", 10) or 10)
+    if stock <= 0:
+        return {"label": "OUT OF STOCK", "class": "stock-badge danger"}
+    if stock <= limit:
+        return {"label": "LOW STOCK", "class": "stock-badge warning"}
+    return {"label": "IN STOCK", "class": "stock-badge success"}
 
 
 def fetch_products(active_only=True, category=None):
@@ -263,9 +276,28 @@ def checkout():
             flash("Please fill name, phone, and delivery address.", "error")
             return render_template("customer/checkout.html", cart=cart, total=total)
 
-
         db = get_db()
-        cursor = db.cursor()
+        cursor = db.cursor(dictionary=True)
+
+        for item in cart:
+            cursor.execute(
+                "SELECT id, stock_quantity, name FROM products WHERE id = %s AND is_active = 1",
+                (item["product_id"],),
+            )
+            product = cursor.fetchone()
+            if not product:
+                flash(f"{item['name']} is no longer available.", "error")
+                return render_template("customer/checkout.html", cart=cart, total=total)
+
+            available = int(product.get("stock_quantity", 0) or 0)
+            requested = int(item.get("quantity", 0))
+            if requested > available:
+                flash(f"Only {available} items available for {item['name']}.", "error")
+                return render_template("customer/checkout.html", cart=cart, total=total)
+            if available <= 0:
+                flash(f"{item['name']} is out of stock.", "error")
+                return render_template("customer/checkout.html", cart=cart, total=total)
+
         cursor.execute(
             """
             INSERT INTO orders
@@ -292,6 +324,10 @@ def checkout():
                     item["quantity"],
                     item["line_total"],
                 ),
+            )
+            cursor.execute(
+                "UPDATE products SET stock_quantity = GREATEST(stock_quantity - %s, 0) WHERE id = %s",
+                (item["quantity"], item["product_id"]),
             )
 
         db.commit()
@@ -381,11 +417,20 @@ def admin_dashboard():
     order_count = cursor.fetchone()["count"]
     cursor.execute("SELECT COALESCE(SUM(total_amount), 0) AS total FROM orders")
     sales_total = cursor.fetchone()["total"]
+    cursor.execute("SELECT COUNT(*) AS count FROM products WHERE stock_quantity <= 0")
+    out_of_stock_count = cursor.fetchone()["count"]
+    cursor.execute("SELECT COUNT(*) AS count FROM products WHERE stock_quantity > 0 AND stock_quantity <= COALESCE(low_stock_limit, 10)")
+    low_stock_count = cursor.fetchone()["count"]
+    cursor.execute("SELECT COALESCE(SUM(stock_quantity), 0) AS total FROM products")
+    inventory_quantity = cursor.fetchone()["total"]
     return render_template(
         "admin/dashboard.html",
         product_count=product_count,
         order_count=order_count,
         sales_total=sales_total,
+        out_of_stock_count=out_of_stock_count,
+        low_stock_count=low_stock_count,
+        inventory_quantity=inventory_quantity,
     )
 
 
@@ -431,6 +476,26 @@ def admin_products():
     return render_template("admin/products.html", products=fetch_products(active_only=False))
 
 
+@app.route("/admin/products/<int:product_id>/adjust-stock", methods=["POST"])
+@admin_required
+def adjust_stock(product_id):
+    db = get_db()
+    cursor = db.cursor(dictionary=True)
+    cursor.execute("SELECT stock_quantity FROM products WHERE id = %s", (product_id,))
+    product = cursor.fetchone()
+    if not product:
+        flash("Product not found.", "error")
+        return redirect(url_for("admin_products"))
+
+    delta = int(request.form.get("delta", "0"))
+    current_stock = int(product.get("stock_quantity", 0) or 0)
+    new_stock = max(0, current_stock + delta)
+    cursor.execute("UPDATE products SET stock_quantity = %s WHERE id = %s", (new_stock, product_id))
+    db.commit()
+    flash("Stock updated successfully.", "success")
+    return redirect(url_for("admin_products"))
+
+
 @app.route("/admin/products/add", methods=["POST"])
 @admin_required
 def add_product():
@@ -444,8 +509,8 @@ def add_product():
 
     cursor.execute(
         """
-        INSERT INTO products (name, price, offer_percentage, description, image_url, product_category)
-        VALUES (%s, %s, %s, %s, %s, %s)
+        INSERT INTO products (name, price, offer_percentage, description, image_url, product_category, stock_quantity, low_stock_limit)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
         """,
 
         (
@@ -455,6 +520,8 @@ def add_product():
             request.form.get("description", "").strip(),
             image_url,
             request.form.get("product_category", "shop"),
+            max(0, int(request.form.get("stock_quantity", 0) or 0)),
+            max(0, int(request.form.get("low_stock_limit", 10) or 10)),
         ),
     )
     db.commit()
@@ -496,6 +563,8 @@ def edit_product(product_id):
 
     # Category fallback
     product_category = request.form.get("product_category") or "shop"
+    stock_quantity = max(0, int(request.form.get("stock_quantity", 0) or 0))
+    low_stock_limit = max(0, int(request.form.get("low_stock_limit", 10) or 10))
 
     cursor.execute(
         """
@@ -507,6 +576,8 @@ def edit_product(product_id):
             description = %s,
             image_url = %s,
             product_category = %s,
+            stock_quantity = %s,
+            low_stock_limit = %s,
             is_active = %s
         WHERE id = %s
         """,
@@ -517,6 +588,8 @@ def edit_product(product_id):
             request.form.get("description", "").strip(),
             image_url,
             product_category,
+            stock_quantity,
+            low_stock_limit,
             1 if request.form.get("is_active") else 0,
             product_id,
         ),
@@ -548,6 +621,32 @@ def admin_orders():
     cursor.execute("SELECT * FROM orders ORDER BY created_at DESC")
     orders = cursor.fetchall()
     return render_template("admin/orders.html", orders=orders)
+
+
+@app.route("/admin/orders/<int:order_id>/cancel", methods=["POST"])
+@admin_required
+def cancel_order(order_id):
+    db = get_db()
+    cursor = db.cursor(dictionary=True)
+    cursor.execute("SELECT id, payment_status FROM orders WHERE id = %s", (order_id,))
+    order = cursor.fetchone()
+    if not order:
+        flash("Order not found.", "error")
+        return redirect(url_for("admin_orders"))
+
+    cursor.execute("SELECT product_id, quantity FROM order_items WHERE order_id = %s", (order_id,))
+    items = cursor.fetchall()
+    for item in items:
+        if item.get("product_id"):
+            cursor.execute(
+                "UPDATE products SET stock_quantity = stock_quantity + %s WHERE id = %s",
+                (item.get("quantity", 0), item.get("product_id")),
+            )
+
+    cursor.execute("UPDATE orders SET payment_status = %s WHERE id = %s", ("Cancelled", order_id))
+    db.commit()
+    flash("Order cancelled and stock restored.", "success")
+    return redirect(url_for("admin_orders"))
 
 
 @app.route("/admin/orders/<int:order_id>/bill")

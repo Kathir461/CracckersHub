@@ -1,73 +1,94 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="section-heading">
+<section class="admin-hero">
   <div>
     <p class="eyebrow">Admin</p>
     <h1>Manage Products</h1>
+    <p>Track stock, update pricing, and keep product visibility aligned.</p>
   </div>
-  <a class="button secondary" href="{{ url_for('admin_orders') }}">View Orders</a>
+  <div class="admin-actions">
+    <a class="admin-btn secondary" href="{{ url_for('admin_orders') }}">View Orders</a>
+  </div>
 </section>
 
-<form method="post" action="{{ url_for('add_product') }}" class="inline-form" enctype="multipart/form-data">
-  <input name="name" placeholder="Product name" required>
-  <input name="price" type="number" step="0.01" min="0" placeholder="Price" required>
-  <input name="offer_percentage" type="number" step="0.01" min="0" max="100" placeholder="Offer %" required>
+<section class="admin-panel">
+  <form method="post" action="{{ url_for('add_product') }}" class="inline-form" enctype="multipart/form-data">
+    <input name="name" placeholder="Product name" required>
+    <input name="price" type="number" step="0.01" min="0" placeholder="Price" required>
+    <input name="offer_percentage" type="number" step="0.01" min="0" max="100" placeholder="Offer %" required>
+    <input name="description" placeholder="Description">
+    <input name="product_category" placeholder="Category (shop/gift_box)" value="shop">
+    <input name="stock_quantity" type="number" min="0" value="0" placeholder="Initial Stock">
+    <input name="low_stock_limit" type="number" min="0" value="10" placeholder="Low Stock Limit">
+    <input name="image" type="file" accept="image/*" placeholder="Product image">
+    <button class="admin-btn" type="submit">Add Product</button>
+  </form>
+</section>
 
-
-
-
-  <input name="description" placeholder="Description">
-  <input name="image" type="file" accept="image/*" placeholder="Product image">
-  <button class="button" type="submit">Add Product</button>
-</form>
-
-<div class="table-panel">
-  <table class="product-table admin-table">
-    <thead>
-      <tr>
-        <th>SNO</th>
-        <th>Image</th>
-        <th>Product</th>
-        <th>Price</th>
-        <th>Offer %</th>
-        <th>Description</th>
-        <th>Active</th>
-        <th>Actions</th>
-
-      </tr>
-
-    </thead>
-    <tbody>
-      {% for product in products %}
-      <tr>
-        <td>{{ loop.index }}</td>
-        <td>
-          {% if product.image_url %}
-          <img class="zoomable-image" src="{{ product.image_url }}" alt="{{ product.name }}" data-full-image-url="{{ product.image_url }}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px; cursor: zoom-in;">
-          {% else %}
-          <span style="color: #999;">No image</span>
-          {% endif %}
-        </td>
-        <td><input form="edit-{{ product.id }}" name="name" value="{{ product.name }}" required></td>
-        <td><input form="edit-{{ product.id }}" name="price" type="number" step="0.01" min="0" value="{{ product.price }}" required></td>
-        <td><input form="edit-{{ product.id }}" name="offer_percentage" type="number" step="0.01" min="0" max="100" value="{{ product.offer_percentage }}" required></td>
-        <td><input form="edit-{{ product.id }}" name="description" value="{{ product.description or '' }}"></td>
-        <td><input form="edit-{{ product.id }}" name="is_active" type="checkbox" {% if product.is_active %}checked{% endif %}></td>
-        <td class="row-actions">
-
-          <input form="edit-{{ product.id }}" name="image" type="file" accept="image/*" style="font-size: 12px;">
-          <button class="button small" form="edit-{{ product.id }}" type="submit">Save</button>
-          <button class="button small danger" type="submit" form="edit-{{ product.id }}" name="remove_image" value="1">Remove Image</button>
-          <button class="button small danger" form="delete-{{ product.id }}" type="submit">Delete</button>
-          <form id="edit-{{ product.id }}" method="post" action="{{ url_for('edit_product', product_id=product.id) }}" enctype="multipart/form-data"></form>
-          <form id="delete-{{ product.id }}" method="post" action="{{ url_for('delete_product', product_id=product.id) }}"></form>
-
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
+<section class="admin-panel">
+  <div class="table-panel">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>SNO</th>
+          <th>Image</th>
+          <th>Product</th>
+          <th>Price</th>
+          <th>Offer %</th>
+          <th>Stock</th>
+          <th>Low Limit</th>
+          <th>Status</th>
+          <th>Description</th>
+          <th>Active</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for product in products %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td>
+            {% if product.image_url %}
+            <img class="zoomable-image" src="{{ product.image_url }}" alt="{{ product.name }}" data-full-image-url="{{ product.image_url }}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 10px; cursor: zoom-in;">
+            {% else %}
+            <span style="color: #999;">No image</span>
+            {% endif %}
+          </td>
+          <td><input form="edit-{{ product.id }}" name="name" value="{{ product.name }}" required></td>
+          <td><input form="edit-{{ product.id }}" name="price" type="number" step="0.01" min="0" value="{{ product.price }}" required></td>
+          <td><input form="edit-{{ product.id }}" name="offer_percentage" type="number" step="0.01" min="0" max="100" value="{{ product.offer_percentage }}" required></td>
+          <td><input form="edit-{{ product.id }}" name="stock_quantity" type="number" min="0" value="{{ product.stock_quantity or 0 }}" required></td>
+          <td><input form="edit-{{ product.id }}" name="low_stock_limit" type="number" min="0" value="{{ product.low_stock_limit or 10 }}" required></td>
+          <td>
+            {% set stock_status = get_stock_status(product) %}
+            <span class="badge {{ stock_status['class'] }}">{{ stock_status['label'] }}</span>
+          </td>
+          <td><input form="edit-{{ product.id }}" name="description" value="{{ product.description or '' }}"></td>
+          <td><input form="edit-{{ product.id }}" name="is_active" type="checkbox" {% if product.is_active %}checked{% endif %}></td>
+          <td>
+            <div class="admin-compact">
+              <input form="edit-{{ product.id }}" name="image" type="file" accept="image/*" style="font-size: 12px;">
+              <button class="admin-btn secondary" form="edit-{{ product.id }}" type="submit">Save</button>
+              <button class="admin-btn danger" type="submit" form="edit-{{ product.id }}" name="remove_image" value="1">Remove</button>
+              <form method="post" action="{{ url_for('adjust_stock', product_id=product.id) }}" style="display:inline;">
+                <input type="hidden" name="delta" value="1">
+                <button class="admin-btn secondary" type="submit">+ Add</button>
+              </form>
+              <form method="post" action="{{ url_for('adjust_stock', product_id=product.id) }}" style="display:inline;">
+                <input type="hidden" name="delta" value="-1">
+                <button class="admin-btn danger" type="submit">- Reduce</button>
+              </form>
+              <button class="admin-btn danger" form="delete-{{ product.id }}" type="submit">Delete</button>
+              <form id="edit-{{ product.id }}" method="post" action="{{ url_for('edit_product', product_id=product.id) }}" enctype="multipart/form-data"></form>
+              <form id="delete-{{ product.id }}" method="post" action="{{ url_for('delete_product', product_id=product.id) }}"></form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
 <script src="{{ url_for('static', filename='js/image_zoom.js') }}"></script>
 {% endblock %}
 

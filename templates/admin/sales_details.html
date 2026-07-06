@@ -1,48 +1,51 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="section-heading">
+<section class="admin-hero">
   <div>
     <p class="eyebrow">Admin</p>
     <h1>Product-wise Sales</h1>
+    <p>See what is selling best and how much revenue each product contributes.</p>
   </div>
-  <a class="button secondary" href="{{ url_for('admin_dashboard') }}">Back to Dashboard</a>
+  <div class="admin-actions">
+    <a class="admin-btn secondary" href="{{ url_for('admin_dashboard') }}">Back to Dashboard</a>
+  </div>
 </section>
 
-<div class="table-panel">
-  <table class="product-table">
-    <thead>
-      <tr>
-        <th>SNO</th>
-        <th>Product</th>
-        <th>Quantity Sold</th>
-        <th>Total Sales (Rs.)</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% if sales_rows %}
-        {% for row in sales_rows %}
+<section class="admin-panel">
+  <div class="table-panel">
+    <table class="admin-table">
+      <thead>
         <tr>
-          <td>{{ loop.index }}</td>
-          <td>
-            {{ row.product_name }}
-          </td>
-          <td>{{ row.total_quantity }}</td>
-          <td>Rs. {{ "%.2f"|format(row.total_sales) }}</td>
+          <th>SNO</th>
+          <th>Product</th>
+          <th>Quantity Sold</th>
+          <th>Total Sales (Rs.)</th>
         </tr>
-        {% endfor %}
+      </thead>
+      <tbody>
+        {% if sales_rows %}
+          {% for row in sales_rows %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ row.product_name }}</td>
+            <td>{{ row.total_quantity }}</td>
+            <td>Rs. {{ "%.2f"|format(row.total_sales) }}</td>
+          </tr>
+          {% endfor %}
 
-        <tr>
-          <td colspan="3" style="text-align:right;"><strong>Total Sales</strong></td>
-          <td><strong>Rs. {{ "%.2f"|format(total_sales) }}</strong></td>
-        </tr>
-      {% else %}
-        <tr>
-          <td colspan="4" style="text-align:center;color:#777;">No sales found.</td>
-        </tr>
-      {% endif %}
-    </tbody>
-  </table>
-</div>
+          <tr>
+            <td colspan="3" style="text-align:right;"><strong>Total Sales</strong></td>
+            <td><strong>Rs. {{ "%.2f"|format(total_sales) }}</strong></td>
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="4" style="text-align:center;color:#777;">No sales found.</td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</section>
 {% endblock %}
 
 
