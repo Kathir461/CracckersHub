@@ -1284,11 +1284,13 @@ label {
 @media (max-width: 600px) {
   body {
     font-size: 14px;
+    padding-bottom: 72px;
   }
 
   .site-header {
     padding: 10px 3vw;
     gap: 8px;
+    align-items: flex-start;
   }
 
   .brand {
@@ -1296,12 +1298,19 @@ label {
   }
 
   nav {
-    gap: 4px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    width: 100%;
   }
 
-  .nav-link {
-    font-size: 0.75rem;
-    padding: 4px 6px;
+  .nav-link,
+  .install-app-button {
+    justify-content: center;
+    width: 100%;
+    font-size: 0.74rem;
+    padding: 7px 8px;
+    border-radius: 10px;
   }
 
   .page {
@@ -1378,14 +1387,46 @@ label {
   .admin-table {
     font-size: 0.75rem;
     width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 8px;
   }
 
-  .product-table th,
+  .product-table thead,
+  .admin-table thead {
+    display: none;
+  }
+
+  .product-table tr,
+  .admin-table tr {
+    display: block;
+    margin-bottom: 10px;
+    background: rgba(255, 255, 255, 0.94);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 12px;
+    padding: 10px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+  }
+
   .product-table td,
-  .admin-table th,
   .admin-table td {
-    padding: 6px 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+    border: 0;
     word-break: break-word;
+  }
+
+  .product-table td::before,
+  .admin-table td::before {
+    content: attr(data-label);
+    font-weight: 700;
+    color: #6b7280;
+    flex: 0 0 38%;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
   }
 
   /* Make Quantity column wider on mobile */
@@ -1415,16 +1456,15 @@ label {
     height: 30px !important;
   }
 
-  /* Hide only SNO column on very small screens */
-  .product-table th:nth-child(1),
-  .product-table td:nth-child(1) {
-    display: none;
-  }
-
   .row-actions {
     display: flex;
     flex-direction: column;
     gap: 3px;
+    width: 100%;
+  }
+
+  .row-actions > * {
+    width: 100%;
   }
 
   .row-actions input {

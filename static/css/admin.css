@@ -344,7 +344,20 @@ body.admin-body {
 }
 
 @media (max-width: 640px) {
+  .admin-main { padding: 10px; }
+  .admin-topbar { padding: 12px; border-radius: 16px; }
+  .admin-topbar .topbar-left { flex-direction: column; align-items: flex-start; width: 100%; }
+  .admin-topbar .search { min-width: 0; width: 100%; }
   .admin-stats-grid { grid-template-columns: 1fr; }
-  .admin-hero { flex-direction: column; align-items: flex-start; }
-  .admin-table { display: block; overflow-x: auto; }
+  .admin-hero { flex-direction: column; align-items: flex-start; padding: 16px; }
+  .admin-panel { padding: 12px; }
+  .admin-actions { flex-direction: column; }
+  .admin-actions > * { width: 100%; text-align: center; justify-content: center; }
+  .admin-table { display: block; }
+  .admin-table thead { display: none; }
+  .admin-table tr { display: block; margin-bottom: 10px; padding: 10px; border: 1px solid var(--border); border-radius: 14px; background: #fcfcff; }
+  .admin-table td { display: flex; justify-content: space-between; gap: 8px; padding: 6px 0; border: 0; }
+  .admin-table td::before { content: attr(data-label); font-weight: 700; color: var(--muted); flex: 0 0 38%; font-size: 0.72rem; text-transform: uppercase; }
+  .admin-compact { flex-direction: column; }
+  .admin-compact > * { width: 100%; }
 }
