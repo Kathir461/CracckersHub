@@ -303,15 +303,19 @@
         }
       });
 
-      // Premium Fireworks Animation System
+      // Premium Fireworks Animation System (DISABLED on Admin to keep admin fast)
       const canvas = document.getElementById('fireworksCanvas');
-      const ctx = canvas.getContext('2d');
+      const isAdminPage = window.location.pathname.startsWith('/admin');
 
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
+      if (canvas && !isAdminPage) {
+        const ctx = canvas.getContext('2d');
 
-      const particles = [];
-      const fireworks = [];
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const particles = [];
+        const fireworks = [];
+
 
       const colors = [
         { r: 255, g: 215, b: 0 },
@@ -464,6 +468,8 @@
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
       });
+      }
     </script>
+
   </body>
 </html>
