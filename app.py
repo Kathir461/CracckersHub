@@ -19,6 +19,10 @@ from werkzeug.utils import secure_filename
 
 from database import close_db, get_db, init_db
 
+# Simple per-request performance logging (admin only)
+import time as _perf_time
+
+
 load_dotenv()
 
 app = Flask(__name__)
@@ -498,7 +502,10 @@ def admin_logout():
 @app.route("/admin")
 @admin_required
 def admin_dashboard():
+    import time as _t
+    _t0 = _t.perf_counter()
     db = get_db()
+
     cursor = db.cursor(dictionary=True)
     cursor.execute("SELECT COUNT(*) AS count FROM products WHERE is_active = 1")
     product_count = cursor.fetchone()["count"]
@@ -551,8 +558,9 @@ def admin_dashboard():
         """
     )
     lowest_revenue_row = cursor.fetchone()
-    return render_template(
+    resp = render_template(
         "admin/dashboard.html",
+
         product_count=product_count,
         order_count=order_count,
         sales_total=sales_total,
@@ -564,6 +572,9 @@ def admin_dashboard():
         highest_revenue_category=highest_revenue_row["category_name"] if highest_revenue_row else "None",
         lowest_revenue_category=lowest_revenue_row["category_name"] if lowest_revenue_row else "None",
     )
+    app.logger.info("[perf] /admin total=%.3f s", _t.perf_counter() - _t0)
+    return resp
+
 
 
 @app.route("/admin/sales-details")

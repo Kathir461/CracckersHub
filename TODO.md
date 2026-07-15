@@ -1,44 +1,34 @@
-# TODO - Sales Analytics Report Redesign
+# TODO - Performance (Admin)
 
-## Step 1: Route/Template mapping
-- Update `app.py` route `/admin/categories/export/<export_type>` to serve the new **Sales Analytics Report** page and exports.
+## Phase A — Must do first (safety + measurements)
+- [x] Disable heavy fireworks animation on `/admin/*` pages (client-side CPU hog)
+- [ ] Add performance logging for admin routes (timings per query + total request)
 
-## Step 2: Implement backend report data
-- Add helper functions in `app.py` to compute (for selected date range):
-  - Summary cards + growth % vs previous period
-  - Category report dataset
-  - Product report dataset (units sold, revenue, discount stats, stock statuses)
-  - Daily / weekly / monthly / yearly aggregates
-  - Chart data (Chart.js)
-  - Inventory report dataset
-  - Best/low sellers top/bottom 10
-  - Customer analytics
 
-## Step 3: Build export handlers
-- Export PDF: reuse browser print-to-PDF by returning the redesigned report HTML with print styles (or implement as download HTML).
-- Export Excel: return a CSV (or XLSX if later added) built from the report tables.
+## Phase B — Database speedups (biggest server wins)
+- [ ] Add MySQL indexes:
+  - order_items(order_id)
+  - order_items(product_id)
+  - orders(created_at)
+  - products(category_id, is_active)
+  - products(stock_quantity)
+  - categories(is_active, display_order)
+- [ ] Update `database.py` to create indexes if missing
 
-## Step 4: Redesign template
-- Replace `templates/admin/category_report.html` with new Sales Analytics Report UI:
-  - Top summary cards
-  - Filter section (today/yesterday/last7/last30/current month/prev month/current year/custom)
-  - Charts (Chart.js)
-  - Tables (category, product, daily, weekly, monthly, yearly, inventory, best sellers, low sellers, customer analytics)
-  - Print-friendly layout (hide sidebar/nav)
+## Phase C — Query improvements
+- [ ] Replace `SELECT *` in admin orders/products with explicit columns
+- [ ] Merge multiple COUNT/SUM queries in admin dashboard into fewer queries
+- [ ] Use pagination/LIMIT on admin products + admin orders
 
-## Step 5: CSS updates
-- Extend `static/css/admin.css` with:
-  - report-specific spacing
-  - print media rules: landscape A4, hide sidebar, repeat table headers.
+## Phase D — Caching + lazy loading
+- [ ] Dashboard caching (60s) for admin dashboard route
+- [ ] Lazy load sales report sections using AJAX (optional but recommended)
 
-## Step 6: Wire DataTables (optional)
-- Add DataTables initialization for large tables if already included in base template.
-
-## Step 7: Verification
-- Run `python -m py_compile app.py`
-- Load the report page and test:
-  - filters work
-  - charts render
-  - exports download
-  - print preview looks correct
+## Phase E — Verification
+- [ ] Run `python -m py_compile app.py database.py`
+- [ ] Test load times:
+  - `/admin` < 1s
+  - `/admin/products` < 1s
+  - `/admin/orders` < 1s
+  - `/admin/sales-details` < 2s
 
