@@ -13,30 +13,15 @@
 </section>
 
 <section class="admin-stats-grid">
-  <a class="stat-card" href="{{ url_for('admin_products') }}">
-    <div class="stat-icon">📦</div>
-    <small>Active Products</small>
-    <strong>{{ product_count }}</strong>
-    <small>Available listings</small>
-  </a>
+
   <a class="stat-card" href="{{ url_for('admin_orders') }}">
     <div class="stat-icon">🧾</div>
     <small>Total Orders</small>
     <strong>{{ order_count }}</strong>
     <small>Bookings received</small>
   </a>
-  <a class="stat-card" href="{{ url_for('admin_sales_details') }}">
-    <div class="stat-icon">💰</div>
-    <small>Total Sales</small>
-    <strong>Rs. {{ sales_total }}</strong>
-    <small>Revenue to date</small>
-  </a>
-  <a class="stat-card" href="{{ url_for('admin_products') }}">
-    <div class="stat-icon">⚠️</div>
-    <small>Low Stock</small>
-    <strong>{{ low_stock_count }}</strong>
-    <small>Needs attention</small>
-  </a>
+
+
 </section>
 
 <section class="admin-panel">

@@ -57,10 +57,14 @@
             </div>
           </a>
           <nav>
-            <a class="{{ 'active' if request.path == url_for('admin_dashboard') else '' }}" href="{{ url_for('admin_dashboard') }}">📊 Dashboard</a>
-            <a class="{{ 'active' if request.path == url_for('admin_products') else '' }}" href="{{ url_for('admin_products') }}">📦 Products</a>
-            <a class="{{ 'active' if request.path == url_for('admin_orders') else '' }}" href="{{ url_for('admin_orders') }}">🧾 Orders</a>
-            <a class="{{ 'active' if request.path == url_for('admin_sales_details') else '' }}" href="{{ url_for('admin_sales_details') }}">📈 Sales</a>
+            <a class="{{ 'active' if request.path == url_for('admin_dashboard') else '' }}" href="{{ url_for('admin_dashboard') }}">Dashboard</a>
+            <a class="{{ 'active' if request.path == url_for('admin_categories') else '' }}" href="{{ url_for('admin_categories') }}">Categories</a>
+            <a class="{{ 'active' if request.path == url_for('admin_products') else '' }}" href="{{ url_for('admin_products') }}">Products</a>
+            <a class="{{ 'active' if request.path == url_for('admin_orders') else '' }}" href="{{ url_for('admin_orders') }}">Orders</a>
+            <a class="{{ 'active' if request.path == url_for('admin_sales_details') else '' }}" href="{{ url_for('admin_sales_details') }}">Product Wise Sales</a>
+            <a class="{{ 'active' if request.path == url_for('admin_products') else '' }}" href="{{ url_for('admin_products') }}">Inventory</a>
+
+
           </nav>
           <div class="admin-sidebar-footer">
             <a class="admin-btn secondary" href="{{ url_for('admin_logout') }}">Logout</a>
@@ -463,4 +467,3 @@
     </script>
   </body>
 </html>
-

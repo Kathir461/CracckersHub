@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 from flask import (
     Flask,
     flash,
+    make_response,
     redirect,
     render_template,
     request,
@@ -148,27 +149,102 @@ def get_stock_status(product):
     return {"label": "IN STOCK", "class": "stock-badge success"}
 
 
-def fetch_products(active_only=True, category=None):
+def fetch_categories(active_only=False):
+    db = get_db()
+    cursor = db.cursor(dictionary=True)
+    query = """
+        SELECT
+            c.*,
+            COUNT(p.id) AS products_count,
+            COALESCE(SUM(CASE WHEN COALESCE(p.stock_quantity, 0) > 0 THEN 1 ELSE 0 END), 0) AS products_in_stock,
+            COALESCE(SUM(CASE WHEN COALESCE(p.stock_quantity, 0) <= 0 THEN 1 ELSE 0 END), 0) AS products_out_of_stock
+        FROM categories c
+        LEFT JOIN products p ON p.category_id = c.id
+    """
+    params = []
+    if active_only:
+        query += " WHERE c.is_active = 1"
+    query += " GROUP BY c.id ORDER BY c.display_order, c.category_name"
+    cursor.execute(query, tuple(params))
+    return cursor.fetchall()
+
+
+def fetch_products(active_only=True, category_id=None):
     db = get_db()
     cursor = db.cursor(dictionary=True)
 
-    query = "SELECT * FROM products"
+    query = """
+        SELECT
+            p.*,
+            c.category_name,
+            c.icon AS category_icon,
+            c.display_order AS category_order,
+            c.is_active AS category_is_active
+        FROM products p
+        LEFT JOIN categories c ON c.id = p.category_id
+    """
     conditions = []
     params = []
 
     if active_only:
-        conditions.append("is_active = 1")
-    if category:
-        conditions.append("product_category = %s")
-        params.append(category)
+        conditions.append("p.is_active = 1")
+        conditions.append("(c.is_active = 1 OR p.category_id IS NULL)")
+    if category_id:
+        conditions.append("p.category_id = %s")
+        params.append(category_id)
 
     if conditions:
         query += " WHERE " + " AND ".join(conditions)
 
-    query += " ORDER BY name"
+    query += " ORDER BY COALESCE(c.display_order, 9999), COALESCE(c.category_name, 'Uncategorized'), p.name"
     cursor.execute(query, tuple(params))
     return cursor.fetchall()
 
+
+def group_products_by_category(products):
+    groups = []
+    category_map = {}
+    for product in products:
+        category_id = product.get("category_id") or 0
+        if category_id not in category_map:
+            group = {
+                "id": category_id,
+                "name": product.get("category_name") or "Uncategorized",
+                "icon": product.get("category_icon") or "🔥",
+                "products": [],
+            }
+            category_map[category_id] = group
+            groups.append(group)
+        category_map[category_id]["products"].append(product)
+    return groups
+
+
+def get_category_summary():
+    db = get_db()
+    cursor = db.cursor(dictionary=True)
+    cursor.execute("SELECT COUNT(*) AS total FROM categories")
+    total_categories = cursor.fetchone()["total"]
+    cursor.execute("SELECT COUNT(*) AS total FROM categories WHERE is_active = 1")
+    active_categories = cursor.fetchone()["total"]
+    cursor.execute("SELECT COUNT(*) AS total FROM products")
+    total_products = cursor.fetchone()["total"]
+    cursor.execute(
+        """
+        SELECT c.category_name, COUNT(p.id) AS product_count
+        FROM categories c
+        LEFT JOIN products p ON p.category_id = c.id
+        GROUP BY c.id
+        ORDER BY product_count DESC, c.category_name
+        LIMIT 1
+        """
+    )
+    largest = cursor.fetchone()
+    return {
+        "total_categories": total_categories,
+        "active_categories": active_categories,
+        "total_products": total_products,
+        "largest_category": largest["category_name"] if largest else "None",
+    }
 
 
 @app.route("/")
@@ -189,7 +265,11 @@ def about():
 def gift_box():
 
     # Gift box page uses the same interactive table + checkout flow as the shop.
-    products = fetch_products(active_only=True)
+    db = get_db()
+    cursor = db.cursor(dictionary=True)
+    cursor.execute("SELECT id FROM categories WHERE category_name = %s AND is_active = 1", ("Gift Boxes",))
+    gift_category = cursor.fetchone()
+    products = fetch_products(active_only=True, category_id=gift_category["id"] if gift_category else None)
 
     if request.method == "POST":
         selected_items = []
@@ -219,12 +299,14 @@ def gift_box():
         session["cart"] = selected_items
         return redirect(url_for("checkout"))
 
-    return render_template("customer/gift_box.html", products=products)
+    return render_template("customer/gift_box.html", products=products, product_groups=group_products_by_category(products))
 
 
 @app.route("/products", methods=["GET", "POST"])
 def customer_products():
-    products = fetch_products(active_only=True)
+    selected_category_id = request.args.get("category_id", type=int)
+    products = fetch_products(active_only=True, category_id=selected_category_id)
+    categories = fetch_categories(active_only=True)
     if request.method == "POST":
         selected_items = []
         for product in products:
@@ -253,7 +335,13 @@ def customer_products():
         session["cart"] = selected_items
         return redirect(url_for("checkout"))
 
-    return render_template("customer/products.html", products=products)
+    return render_template(
+        "customer/products.html",
+        products=products,
+        product_groups=group_products_by_category(products),
+        categories=categories,
+        selected_category_id=selected_category_id,
+    )
 
 
 @app.route("/checkout", methods=["GET", "POST"])
@@ -325,6 +413,7 @@ def checkout():
                     item["line_total"],
                 ),
             )
+
             cursor.execute(
                 "UPDATE products SET stock_quantity = GREATEST(stock_quantity - %s, 0) WHERE id = %s",
                 (item["quantity"], item["product_id"]),
@@ -423,6 +512,45 @@ def admin_dashboard():
     low_stock_count = cursor.fetchone()["count"]
     cursor.execute("SELECT COALESCE(SUM(stock_quantity), 0) AS total FROM products")
     inventory_quantity = cursor.fetchone()["total"]
+    cursor.execute("SELECT COUNT(*) AS count FROM categories")
+    total_categories = cursor.fetchone()["count"]
+    cursor.execute(
+        """
+        SELECT c.category_name, COUNT(p.id) AS product_count
+        FROM categories c
+        LEFT JOIN products p ON p.category_id = c.id
+        GROUP BY c.id
+        ORDER BY product_count DESC, c.category_name
+        LIMIT 1
+        """
+    )
+    largest_category_row = cursor.fetchone()
+    cursor.execute(
+        """
+        SELECT COALESCE(c.category_name, 'Uncategorized') AS category_name,
+               COALESCE(SUM(oi.line_total), 0) AS revenue
+        FROM order_items oi
+        LEFT JOIN products p ON p.id = oi.product_id
+        LEFT JOIN categories c ON c.id = p.category_id
+        GROUP BY category_name
+        ORDER BY revenue DESC
+        LIMIT 1
+        """
+    )
+    highest_revenue_row = cursor.fetchone()
+    cursor.execute(
+        """
+        SELECT COALESCE(c.category_name, 'Uncategorized') AS category_name,
+               COALESCE(SUM(oi.line_total), 0) AS revenue
+        FROM order_items oi
+        LEFT JOIN products p ON p.id = oi.product_id
+        LEFT JOIN categories c ON c.id = p.category_id
+        GROUP BY category_name
+        ORDER BY revenue ASC
+        LIMIT 1
+        """
+    )
+    lowest_revenue_row = cursor.fetchone()
     return render_template(
         "admin/dashboard.html",
         product_count=product_count,
@@ -431,6 +559,10 @@ def admin_dashboard():
         out_of_stock_count=out_of_stock_count,
         low_stock_count=low_stock_count,
         inventory_quantity=inventory_quantity,
+        total_categories=total_categories,
+        largest_category=largest_category_row["category_name"] if largest_category_row else "None",
+        highest_revenue_category=highest_revenue_row["category_name"] if highest_revenue_row else "None",
+        lowest_revenue_category=lowest_revenue_row["category_name"] if lowest_revenue_row else "None",
     )
 
 
@@ -440,25 +572,165 @@ def admin_sales_details():
     db = get_db()
     cursor = db.cursor(dictionary=True)
 
-    # Product-wise sales computed from order_items
+    # Product rows grouped under each category
     cursor.execute(
         """
         SELECT
-            product_name,
-            SUM(quantity) AS total_quantity,
-            SUM(line_total) AS total_sales
-        FROM order_items
-        GROUP BY product_name
-        ORDER BY total_sales DESC
+            COALESCE(c.id, 0) AS category_id,
+            COALESCE(CONVERT(c.category_name USING utf8mb4), 'Uncategorized') AS category_name,
+            COALESCE(CONVERT(c.icon USING utf8mb4), 'F') AS category_icon,
+            oi.product_name,
+            SUM(oi.quantity) AS total_quantity,
+            SUM(oi.line_total) AS total_sales
+        FROM order_items oi
+        LEFT JOIN products p ON p.id = oi.product_id
+        LEFT JOIN categories c ON c.id = p.category_id
+        GROUP BY category_id, category_name, category_icon, oi.product_name
+        ORDER BY COALESCE(c.display_order, 9999), category_name, total_sales DESC
         """
     )
     sales_rows = cursor.fetchall()
 
-    # Total sales value for footer
-    cursor.execute("SELECT COALESCE(SUM(line_total), 0) AS grand_total FROM order_items")
-    total_sales = cursor.fetchone()["grand_total"]
+    # Build category groups from the product rows
+    sales_groups = []
+    group_map = {}
+    for row in sales_rows:
+        key = row["category_id"]
+        if key not in group_map:
+            group_map[key] = {
+                "category_name": row["category_name"],
+                "category_icon": row["category_icon"],
+                "rows": [],
+            }
+            sales_groups.append(group_map[key])
+        group_map[key]["rows"].append(row)
 
-    return render_template("admin/sales_details.html", sales_rows=sales_rows, total_sales=total_sales)
+    # Category totals (SQL GROUP BY to avoid mismatch)
+    cursor.execute(
+        """
+        SELECT
+            COALESCE(c.id, 0) AS category_id,
+            COALESCE(CONVERT(c.category_name USING utf8mb4), 'Uncategorized') AS category_name,
+            COALESCE(CONVERT(c.icon USING utf8mb4), 'F') AS category_icon,
+            SUM(oi.quantity) AS total_units,
+            SUM(oi.line_total) AS total_revenue
+        FROM order_items oi
+        LEFT JOIN products p ON p.id = oi.product_id
+        LEFT JOIN categories c ON c.id = p.category_id
+        GROUP BY category_id, category_name, category_icon
+        """
+    )
+    category_totals_rows = cursor.fetchall() or []
+    category_totals_map = {
+        int(r["category_id"]): {
+            "total_units": int(r["total_units"] or 0),
+            "total_revenue": float(r["total_revenue"] or 0),
+        }
+        for r in category_totals_rows
+    }
+
+    # Attach SQL totals to the groups
+    for group in sales_groups:
+        # We may not have category_id in group, so recompute by matching name/icon
+        # Better approach would pass category_id too, but template only needs correct totals.
+        # Find matching totals row by category_name
+        match = None
+        for ct in category_totals_rows:
+            if ct["category_name"] == group["category_name"] and ct["category_icon"] == group["category_icon"]:
+                match = category_totals_map.get(int(ct["category_id"]))
+                if match:
+                    break
+        group["total_units"] = match["total_units"] if match else 0
+        group["total_revenue"] = match["total_revenue"] if match else 0.0
+
+    # Overall totals + KPIs
+    cursor.execute("SELECT COALESCE(SUM(line_total), 0) AS grand_total FROM order_items")
+    total_sales = cursor.fetchone()["grand_total"] or 0
+
+    cursor.execute("SELECT COALESCE(SUM(quantity), 0) AS total_units FROM order_items")
+    total_units = cursor.fetchone()["total_units"] or 0
+
+    cursor.execute("SELECT COUNT(*) AS total_orders FROM orders")
+    total_orders = cursor.fetchone()["total_orders"] or 0
+
+    avg_order_value = (float(total_sales) / float(total_orders)) if total_orders else 0.0
+
+    cursor.execute(
+        """
+        SELECT
+            COALESCE(c.category_name, 'Uncategorized') AS category_name,
+            SUM(oi.line_total) AS revenue
+        FROM order_items oi
+        LEFT JOIN products p ON p.id = oi.product_id
+        LEFT JOIN categories c ON c.id = p.category_id
+        GROUP BY COALESCE(c.category_name, 'Uncategorized')
+        ORDER BY revenue DESC
+        LIMIT 1
+        """
+    )
+    best_cat_row = cursor.fetchone() or {}
+    best_selling_category = best_cat_row.get("category_name") or "Uncategorized"
+
+    cursor.execute(
+        """
+        SELECT
+            oi.product_name,
+            SUM(oi.quantity) AS units_sold
+        FROM order_items oi
+        GROUP BY oi.product_name
+        ORDER BY units_sold DESC
+        LIMIT 1
+        """
+    )
+    best_prod_row = cursor.fetchone() or {}
+    best_selling_product = best_prod_row.get("product_name") or ""
+
+    # Top 5 products
+    cursor.execute(
+        """
+        SELECT
+            oi.product_name,
+            SUM(oi.quantity) AS units_sold,
+            SUM(oi.line_total) AS revenue
+        FROM order_items oi
+        GROUP BY oi.product_name
+        ORDER BY revenue DESC
+        LIMIT 5
+        """
+    )
+    top_products = cursor.fetchall() or []
+
+    # Top 5 categories
+    cursor.execute(
+        """
+        SELECT
+            COALESCE(c.category_name, 'Uncategorized') AS category_name,
+            SUM(oi.quantity) AS units_sold,
+            SUM(oi.line_total) AS revenue
+        FROM order_items oi
+        LEFT JOIN products p ON p.id = oi.product_id
+        LEFT JOIN categories c ON c.id = p.category_id
+        GROUP BY COALESCE(c.category_name, 'Uncategorized')
+        ORDER BY revenue DESC
+        LIMIT 5
+        """
+    )
+    top_categories = cursor.fetchall() or []
+
+    return render_template(
+        "admin/sales_details.html",
+        sales_groups=sales_groups,
+        total_sales=total_sales,
+        total_units=total_units,
+        total_orders=total_orders,
+        avg_order_value=avg_order_value,
+        best_selling_category=best_selling_category,
+        best_selling_product=best_selling_product,
+        top_products=top_products,
+        top_categories=top_categories,
+    )
+
+
 
 
 @app.route("/admin/sales_details")
@@ -468,12 +740,297 @@ def admin_sales_details_compat():
     return redirect(url_for("admin_sales_details"))
 
 
+@app.route("/admin/categories")
+@admin_required
+def admin_categories():
+    db = get_db()
+    cursor = db.cursor(dictionary=True)
+    search = request.args.get("search", "").strip()
+    status = request.args.get("status", "all")
+    sort = request.args.get("sort", "display_order")
+
+    query = """
+        SELECT
+            c.*,
+            COUNT(p.id) AS products_count,
+            COALESCE(SUM(CASE WHEN COALESCE(p.stock_quantity, 0) > 0 THEN 1 ELSE 0 END), 0) AS products_in_stock,
+            COALESCE(SUM(CASE WHEN COALESCE(p.stock_quantity, 0) <= 0 THEN 1 ELSE 0 END), 0) AS products_out_of_stock
+        FROM categories c
+        LEFT JOIN products p ON p.category_id = c.id
+    """
+    conditions = []
+    params = []
+    if search:
+        conditions.append("(c.category_name LIKE %s OR c.description LIKE %s)")
+        params.extend([f"%{search}%", f"%{search}%"])
+    if status == "active":
+        conditions.append("c.is_active = 1")
+    elif status == "inactive":
+        conditions.append("c.is_active = 0")
+    if conditions:
+        query += " WHERE " + " AND ".join(conditions)
+
+    sort_map = {
+        "name": "c.category_name",
+        "products": "products_count DESC",
+        "display_order": "c.display_order",
+        "status": "c.is_active DESC, c.display_order",
+    }
+    query += f" GROUP BY c.id ORDER BY {sort_map.get(sort, 'c.display_order')}, c.category_name"
+    cursor.execute(query, tuple(params))
+    categories = cursor.fetchall()
+
+    return render_template(
+        "admin/categories.html",
+        categories=categories,
+        summary=get_category_summary(),
+        search=search,
+        status=status,
+        sort=sort,
+    )
+
+
+@app.route("/admin/categories/add", methods=["POST"])
+@admin_required
+def add_category():
+    db = get_db()
+    cursor = db.cursor()
+    cursor.execute(
+        """
+        INSERT INTO categories (category_name, icon, description, display_order, is_active)
+        VALUES (%s, %s, %s, %s, %s)
+        """,
+        (
+            request.form["category_name"].strip(),
+            request.form.get("icon", "*").strip() or "*",
+            request.form.get("description", "").strip(),
+            int(request.form.get("display_order", 0) or 0),
+            1 if request.form.get("is_active") else 0,
+        ),
+    )
+    db.commit()
+    flash("Category added.", "success")
+    return redirect(url_for("admin_categories"))
+
+
+@app.route("/admin/categories/<int:category_id>/edit", methods=["POST"])
+@admin_required
+def edit_category(category_id):
+    db = get_db()
+    cursor = db.cursor()
+    cursor.execute(
+        """
+        UPDATE categories
+        SET category_name = %s, icon = %s, description = %s, display_order = %s, is_active = %s
+        WHERE id = %s
+        """,
+        (
+            request.form["category_name"].strip(),
+            request.form.get("icon", "*").strip() or "*",
+            request.form.get("description", "").strip(),
+            int(request.form.get("display_order", 0) or 0),
+            1 if request.form.get("is_active") else 0,
+            category_id,
+        ),
+    )
+    db.commit()
+    flash("Category updated.", "success")
+    return redirect(url_for("admin_categories"))
+
+
+@app.route("/admin/categories/<int:category_id>/toggle", methods=["POST"])
+@admin_required
+def toggle_category(category_id):
+    db = get_db()
+    cursor = db.cursor()
+    cursor.execute("UPDATE categories SET is_active = NOT is_active WHERE id = %s", (category_id,))
+    db.commit()
+    flash("Category status updated.", "success")
+    return redirect(url_for("admin_categories"))
+
+
+@app.route("/admin/categories/<int:category_id>/delete", methods=["POST"])
+@admin_required
+def delete_category(category_id):
+    db = get_db()
+    cursor = db.cursor(dictionary=True)
+    cursor.execute("SELECT COUNT(*) AS count FROM products WHERE category_id = %s", (category_id,))
+    product_count = cursor.fetchone()["count"]
+    if product_count:
+        flash("This category contains products. Move the products to another category before deleting.", "error")
+        return redirect(url_for("admin_categories"))
+
+    cursor.execute("DELETE FROM categories WHERE id = %s", (category_id,))
+    db.commit()
+    flash("Category deleted.", "success")
+    return redirect(url_for("admin_categories"))
+
+
+@app.route("/admin/categories/reorder", methods=["POST"])
+@admin_required
+def reorder_categories():
+    db = get_db()
+    cursor = db.cursor()
+    category_ids = request.form.get("category_order", "")
+    for index, category_id in enumerate([item for item in category_ids.split(",") if item.strip()], start=1):
+        cursor.execute("UPDATE categories SET display_order = %s WHERE id = %s", (index, int(category_id)))
+    db.commit()
+    flash("Category order updated.", "success")
+    return redirect(url_for("admin_categories"))
+
+
+@app.route("/admin/categories/export/<export_type>")
+@admin_required
+def export_categories(export_type):
+    # REPORT_REDESIGN_MARKER
+    # Repurposed for Sales Analytics Report page + CSV export.
+    if export_type == "excel":
+
+        # Sales Analytics Report Excel export (CSV-compatible)
+        date_filter = request.args.get("date_range", "last30")
+        start_date = request.args.get("start_date")
+        end_date = request.args.get("end_date")
+
+        category_id = request.args.get("category_id", type=int)
+        product_id = request.args.get("product_id", type=int)
+        payment_method = request.args.get("payment_method", "all")
+
+        from datetime import datetime, date, timedelta
+
+        def parse_ymd(s):
+            if not s:
+                return None
+            return datetime.strptime(s, "%Y-%m-%d").date()
+
+        today = date.today()
+
+        if date_filter == "today":
+            start_d = today
+            end_d = today
+        elif date_filter == "yesterday":
+            start_d = today - timedelta(days=1)
+            end_d = today - timedelta(days=1)
+        elif date_filter == "last7":
+            start_d = today - timedelta(days=6)
+            end_d = today
+        elif date_filter == "last30":
+            start_d = today - timedelta(days=29)
+            end_d = today
+        elif date_filter == "current_month":
+            start_d = today.replace(day=1)
+            end_d = today
+        elif date_filter == "prev_month":
+            first_this_month = today.replace(day=1)
+            last_prev_month = first_this_month - timedelta(days=1)
+            start_d = last_prev_month.replace(day=1)
+            end_d = last_prev_month
+        elif date_filter == "current_year":
+            start_d = today.replace(month=1, day=1)
+            end_d = today
+        elif date_filter == "custom":
+            start_d = parse_ymd(start_date) or (today - timedelta(days=29))
+            end_d = parse_ymd(end_date) or today
+        else:
+            start_d = today - timedelta(days=29)
+            end_d = today
+
+        start_dt = datetime.combine(start_d, datetime.min.time())
+        end_dt = datetime.combine(end_d, datetime.max.time())
+
+        pay_cond_sql = ""
+        pay_params = []
+        if payment_method and payment_method != "all":
+            pay_cond_sql = " AND o.payment_method = %s"
+            pay_params = [payment_method]
+
+        cat_cond_sql = ""
+        cat_params = []
+        if category_id:
+            cat_cond_sql = " AND p.category_id = %s"
+            cat_params = [category_id]
+
+        prod_cond_sql = ""
+        prod_params = []
+        if product_id:
+            prod_cond_sql = " AND oi.product_id = %s"
+            prod_params = [product_id]
+
+        db = get_db()
+        cur = db.cursor(dictionary=True)
+
+        cur.execute(
+            f"""
+            SELECT
+              COALESCE(SUM(oi.line_total),0) AS revenue,
+              COALESCE(SUM(oi.quantity),0) AS units,
+              COUNT(DISTINCT o.id) AS orders
+            FROM orders o
+            JOIN order_items oi ON oi.order_id=o.id
+            LEFT JOIN products p ON p.id=oi.product_id
+            WHERE o.created_at BETWEEN %s AND %s
+              {pay_cond_sql}
+              {cat_cond_sql}
+              {prod_cond_sql}
+            """,
+            [start_dt, end_dt] + pay_params + cat_params + prod_params,
+        )
+        totals = cur.fetchone() or {}
+
+        csv_lines = ["SECTION,ITEM1,ITEM2,ITEM3,ITEM4"]
+        csv_lines.append(f"SUMMARY,total_revenue,{totals.get('revenue',0)},total_orders,{totals.get('orders',0)}")
+
+        csv_lines.append("CATEGORY,category_name,units_sold,revenue")
+        cur.execute(
+            f"""
+            SELECT
+              COALESCE(c.category_name,'Uncategorized') AS category_name,
+              SUM(oi.quantity) AS units_sold,
+              SUM(oi.line_total) AS revenue
+            FROM orders o
+            JOIN order_items oi ON oi.order_id=o.id
+            LEFT JOIN products p ON p.id=oi.product_id
+            LEFT JOIN categories c ON c.id=p.category_id
+            WHERE o.created_at BETWEEN %s AND %s
+              {pay_cond_sql}
+              {cat_cond_sql}
+              {prod_cond_sql}
+            GROUP BY COALESCE(c.category_name,'Uncategorized')
+            ORDER BY revenue DESC
+            """,
+            [start_dt, end_dt] + pay_params + cat_params + prod_params,
+        )
+        for r in cur.fetchall() or []:
+            csv_lines.append(
+                f"CATEGORY,{r.get('category_name','')},{int(r.get('units_sold') or 0)},{float(r.get('revenue') or 0)}"
+            )
+
+        for row in rows:
+            csv_lines.append(
+                f"\"{row['category_name']}\",\"{row.get('description') or ''}\",{row['display_order']},{row['products_count']},{row['products_in_stock']},{row['products_out_of_stock']},{'Active' if row['is_active'] else 'Inactive'}"
+            )
+        response = make_response("\n".join(csv_lines))
+        response.headers["Content-Type"] = "text/csv"
+        response.headers["Content-Disposition"] = "attachment; filename=category-report.csv"
+        return response
+
+    # Reports disabled
+    return "Reports are disabled.", 403
+
+
+
 
 
 @app.route("/admin/products")
 @admin_required
 def admin_products():
-    return render_template("admin/products.html", products=fetch_products(active_only=False))
+    category_id = request.args.get("category_id", type=int)
+    return render_template(
+        "admin/products.html",
+        products=fetch_products(active_only=False, category_id=category_id),
+        categories=fetch_categories(active_only=False),
+        selected_category_id=category_id,
+    )
+
 
 
 @app.route("/admin/products/<int:product_id>/adjust-stock", methods=["POST"])
@@ -509,17 +1066,16 @@ def add_product():
 
     cursor.execute(
         """
-        INSERT INTO products (name, price, offer_percentage, description, image_url, product_category, stock_quantity, low_stock_limit)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        INSERT INTO products (name, price, description, image_url, category_id, stock_quantity, low_stock_limit)
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
         """,
 
         (
             request.form["name"].strip(),
             request.form["price"],
-            request.form["offer_percentage"],
             request.form.get("description", "").strip(),
             image_url,
-            request.form.get("product_category", "shop"),
+            request.form.get("category_id") or None,
             max(0, int(request.form.get("stock_quantity", 0) or 0)),
             max(0, int(request.form.get("low_stock_limit", 10) or 10)),
         ),
@@ -561,8 +1117,7 @@ def edit_product(product_id):
 
 
 
-    # Category fallback
-    product_category = request.form.get("product_category") or "shop"
+    category_id = request.form.get("category_id") or None
     stock_quantity = max(0, int(request.form.get("stock_quantity", 0) or 0))
     low_stock_limit = max(0, int(request.form.get("low_stock_limit", 10) or 10))
 
@@ -572,10 +1127,9 @@ def edit_product(product_id):
         SET
             name = %s,
             price = %s,
-            offer_percentage = %s,
             description = %s,
             image_url = %s,
-            product_category = %s,
+            category_id = %s,
             stock_quantity = %s,
             low_stock_limit = %s,
             is_active = %s
@@ -584,10 +1138,9 @@ def edit_product(product_id):
         (
             request.form["name"].strip(),
             request.form["price"],
-            request.form["offer_percentage"],
             request.form.get("description", "").strip(),
             image_url,
-            product_category,
+            category_id,
             stock_quantity,
             low_stock_limit,
             1 if request.form.get("is_active") else 0,

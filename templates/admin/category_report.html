@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Category Report</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+  </head>
+  <body>
+    <section class="admin-panel">
+      <h1>Category Report</h1>
+      <button class="admin-btn secondary" onclick="window.print()">Print / Save PDF</button>
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Category</th>
+            <th>Description</th>
+            <th>Order</th>
+            <th>Products</th>
+            <th>In Stock</th>
+            <th>Out Of Stock</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for category in categories %}
+          <tr>
+            <td>{{ category.category_name }}</td>
+            <td>{{ category.description or '' }}</td>
+            <td>{{ category.display_order }}</td>
+            <td>{{ category.products_count }}</td>
+            <td>{{ category.products_in_stock }}</td>
+            <td>{{ category.products_out_of_stock }}</td>
+            <td>{{ 'Active' if category.is_active else 'Inactive' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+  </body>
+</html>

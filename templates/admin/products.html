@@ -15,15 +15,22 @@
   <form method="post" action="{{ url_for('add_product') }}" class="inline-form" enctype="multipart/form-data">
     <input name="name" placeholder="Product name" required>
     <input name="price" type="number" step="0.01" min="0" placeholder="Price" required>
-    <input name="offer_percentage" type="number" step="0.01" min="0" max="100" placeholder="Offer %" required>
     <input name="description" placeholder="Description">
-    <input name="product_category" placeholder="Category (shop/gift_box)" value="shop">
+
+    <select name="category_id" required>
+      <option value="" disabled selected>▼ Select Category</option>
+      {% for c in categories %}
+        <option value="{{ c.id }}">{{ c.icon }} {{ c.category_name }}</option>
+      {% endfor %}
+    </select>
+
     <input name="stock_quantity" type="number" min="0" value="0" placeholder="Initial Stock">
     <input name="low_stock_limit" type="number" min="0" value="10" placeholder="Low Stock Limit">
     <input name="image" type="file" accept="image/*" placeholder="Product image">
     <button class="admin-btn" type="submit">Add Product</button>
   </form>
 </section>
+
 
 <section class="admin-panel">
   <div class="table-panel">
@@ -34,7 +41,7 @@
           <th>Image</th>
           <th>Product</th>
           <th>Price</th>
-          <th>Offer %</th>
+          <th>Category</th>
           <th>Stock</th>
           <th>Low Limit</th>
           <th>Status</th>
@@ -42,6 +49,7 @@
           <th>Active</th>
           <th>Actions</th>
         </tr>
+
       </thead>
       <tbody>
         {% for product in products %}
@@ -56,9 +64,16 @@
           </td>
           <td><input form="edit-{{ product.id }}" name="name" value="{{ product.name }}" required></td>
           <td><input form="edit-{{ product.id }}" name="price" type="number" step="0.01" min="0" value="{{ product.price }}" required></td>
-          <td><input form="edit-{{ product.id }}" name="offer_percentage" type="number" step="0.01" min="0" max="100" value="{{ product.offer_percentage }}" required></td>
+          <td>
+            <select form="edit-{{ product.id }}" name="category_id" required>
+              {% for c in categories %}
+                <option value="{{ c.id }}" {% if product.category_id == c.id %}selected{% endif %}>{{ c.icon }} {{ c.category_name }}</option>
+              {% endfor %}
+            </select>
+          </td>
           <td><input form="edit-{{ product.id }}" name="stock_quantity" type="number" min="0" value="{{ product.stock_quantity or 0 }}" required></td>
           <td><input form="edit-{{ product.id }}" name="low_stock_limit" type="number" min="0" value="{{ product.low_stock_limit or 10 }}" required></td>
+
           <td>
             {% set stock_status = get_stock_status(product) %}
             <span class="badge {{ stock_status['class'] }}">{{ stock_status['label'] }}</span>
@@ -83,6 +98,7 @@
               <form id="delete-{{ product.id }}" method="post" action="{{ url_for('delete_product', product_id=product.id) }}"></form>
             </div>
           </td>
+
         </tr>
         {% endfor %}
       </tbody>

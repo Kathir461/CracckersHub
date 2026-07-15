@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="admin-hero">
+  <div>
+    <p class="eyebrow">Admin</p>
+    <h1>Category Management</h1>
+    <p>Create unlimited product categories, control visibility, and organize display order.</p>
+  </div>
+  <div class="admin-actions">
+    <a class="admin-btn secondary" href="{{ url_for('export_categories', export_type='pdf') }}">Export PDF</a>
+    <a class="admin-btn secondary" href="{{ url_for('export_categories', export_type='excel') }}">Export Excel</a>
+  </div>
+</section>
+
+<section class="admin-stats-grid">
+  <div class="stat-card"><small>Total Categories</small><strong>{{ summary.total_categories }}</strong><small>All records</small></div>
+  <div class="stat-card"><small>Active Categories</small><strong>{{ summary.active_categories }}</strong><small>Visible to customers</small></div>
+  <div class="stat-card"><small>Total Products</small><strong>{{ summary.total_products }}</strong><small>Assigned inventory</small></div>
+  <div class="stat-card"><small>Largest Category</small><strong>{{ summary.largest_category }}</strong><small>Most products</small></div>
+</section>
+
+<section class="admin-panel">
+  <form method="get" class="category-toolbar">
+    <input name="search" value="{{ search }}" placeholder="Search Category">
+    <select name="status">
+      <option value="all" {% if status == 'all' %}selected{% endif %}>All Status</option>
+      <option value="active" {% if status == 'active' %}selected{% endif %}>Active</option>
+      <option value="inactive" {% if status == 'inactive' %}selected{% endif %}>Inactive</option>
+    </select>
+    <select name="sort">
+      <option value="display_order" {% if sort == 'display_order' %}selected{% endif %}>Sort by Display Order</option>
+      <option value="name" {% if sort == 'name' %}selected{% endif %}>Sort by Name</option>
+      <option value="products" {% if sort == 'products' %}selected{% endif %}>Sort by Products</option>
+      <option value="status" {% if sort == 'status' %}selected{% endif %}>Sort by Status</option>
+    </select>
+    <button class="admin-btn" type="submit">Apply</button>
+  </form>
+</section>
+
+<section class="admin-panel">
+  <h2>Add Category</h2>
+  <form method="post" action="{{ url_for('add_category') }}" class="inline-form">
+    <input name="icon" placeholder="Icon" value="*">
+    <input name="category_name" placeholder="Category name" required>
+    <input name="description" placeholder="Description">
+    <input name="display_order" type="number" min="0" value="0" placeholder="Display order">
+    <label class="check-row"><input name="is_active" type="checkbox" checked> Active</label>
+    <button class="admin-btn" type="submit">Add Category</button>
+  </form>
+</section>
+
+<section class="admin-panel">
+  <form method="post" action="{{ url_for('reorder_categories') }}" id="reorder-form">
+    <input type="hidden" name="category_order" id="category-order">
+    <div class="table-panel">
+      <table class="admin-table modern-category-table">
+        <thead>
+          <tr>
+            <th>Icon</th>
+            <th>Category Name</th>
+            <th>Description</th>
+            <th>Display Order</th>
+            <th>Products Count</th>
+            <th>Products In Stock</th>
+            <th>Products Out Of Stock</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="category-sort-list">
+          {% for category in categories %}
+          <tr draggable="true" data-category-id="{{ category.id }}">
+            <td><input form="edit-category-{{ category.id }}" name="icon" value="{{ category.icon or '*' }}"></td>
+            <td><input form="edit-category-{{ category.id }}" name="category_name" value="{{ category.category_name }}" required></td>
+            <td><input form="edit-category-{{ category.id }}" name="description" value="{{ category.description or '' }}"></td>
+            <td><input form="edit-category-{{ category.id }}" name="display_order" type="number" min="0" value="{{ category.display_order }}"></td>
+            <td>{{ category.products_count }}</td>
+            <td>{{ category.products_in_stock }}</td>
+            <td>{{ category.products_out_of_stock }}</td>
+            <td>
+              <label class="check-row"><input form="edit-category-{{ category.id }}" name="is_active" type="checkbox" {% if category.is_active %}checked{% endif %}> {{ 'Active' if category.is_active else 'Disabled' }}</label>
+            </td>
+            <td>
+              <div class="admin-compact">
+                <button class="admin-btn secondary" form="edit-category-{{ category.id }}" type="submit">Edit</button>
+                <button class="admin-btn secondary" form="toggle-category-{{ category.id }}" type="submit">{{ 'Disable' if category.is_active else 'Enable' }}</button>
+                <a class="admin-btn secondary" href="{{ url_for('admin_products', category_id=category.id) }}">View Products</a>
+                <button class="admin-btn danger" form="delete-category-{{ category.id }}" type="submit">Delete</button>
+              </div>
+              <form id="edit-category-{{ category.id }}" method="post" action="{{ url_for('edit_category', category_id=category.id) }}"></form>
+              <form id="toggle-category-{{ category.id }}" method="post" action="{{ url_for('toggle_category', category_id=category.id) }}"></form>
+              <form id="delete-category-{{ category.id }}" method="post" action="{{ url_for('delete_category', category_id=category.id) }}"></form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="admin-actions">
+      <button class="admin-btn" type="submit">Save Drag Order</button>
+    </div>
+  </form>
+</section>
+
+<script>
+  const sortList = document.querySelector("#category-sort-list");
+  const orderInput = document.querySelector("#category-order");
+  let draggedRow = null;
+
+  function syncCategoryOrder() {
+    orderInput.value = Array.from(sortList.querySelectorAll("tr"))
+      .map((row) => row.dataset.categoryId)
+      .join(",");
+  }
+
+  if (sortList) {
+    sortList.addEventListener("dragstart", (event) => {
+      draggedRow = event.target.closest("tr");
+    });
+    sortList.addEventListener("dragover", (event) => {
+      event.preventDefault();
+      const target = event.target.closest("tr");
+      if (target && draggedRow && target !== draggedRow) {
+        const box = target.getBoundingClientRect();
+        const after = event.clientY > box.top + box.height / 2;
+        target.parentNode.insertBefore(draggedRow, after ? target.nextSibling : target);
+        syncCategoryOrder();
+      }
+    });
+    syncCategoryOrder();
+  }
+</script>
+{% endblock %}

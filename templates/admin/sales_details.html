@@ -1,51 +1,197 @@
 {% extends "base.html" %}
 {% block content %}
+<style>
+  .report-container{
+    padding: 14px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  .category-card{
+    background:#fff;
+    border:1px solid #e5e7eb;
+    border-radius:12px;
+    overflow:hidden;
+    margin-bottom:18px;
+  }
+  .category-card-header{
+    background:#fff;
+    border-bottom:1px solid #e5e7eb;
+    padding:20px;
+    display:flex;
+    align-items:center;
+    justify-content:flex-start;
+    gap:12px;
+  }
+  .category-card-header .icon{
+    font-size:28px;
+    font-weight:700;
+    line-height:1;
+    color:#ff7a00;
+  }
+  .category-card-header h2{
+    margin:0;
+    font-size:28px;
+    font-weight:700;
+    color:#1f2937;
+    text-align:left;
+  }
+  .category-submetrics{
+    margin-left:auto;
+    display:flex;
+    gap:18px;
+    flex-wrap:wrap;
+    justify-content:flex-end;
+  }
+  .metric{
+    font-size:14px;
+    color:#374151;
+  }
+  .metric strong{ color:#111827; font-size:16px; }
+
+  .admin-table{
+    width:100%;
+    border-collapse:collapse;
+  }
+  .admin-table th{
+    background:#f3f4f6;
+    color:#111827;
+    border-bottom:1px solid #e5e7eb;
+    padding:10px;
+  }
+  .admin-table td{
+    border-bottom:1px solid #f1f5f9;
+    padding:10px;
+  }
+  .admin-table tr:last-child td{ border-bottom:none; }
+
+  @media print {
+    @page { size: A4 landscape; margin: 15mm; }
+    html, body { background:#fff !important; }
+
+    /* hide sidebar/nav/buttons/search */
+    .admin-sidebar, .admin-sidebar-footer, .admin-topbar, nav, .admin-actions, .no-print, .admin-hero, .actions, button {
+      display:none !important;
+    }
+
+    .admin-page, .admin-main, .admin-shell { background:#fff !important; box-shadow:none !important; }
+
+    /* Only print report */
+    .report-container { display:block !important; }
+
+    /* table header repeat + avoid split */
+    table.admin-table thead { display: table-header-group; }
+    table.admin-table tbody { page-break-inside: avoid; }
+    .category-card { page-break-inside: avoid; }
+
+    /* remove link urls */
+    a[href]:after { content: "" !important; }
+  }
+</style>
+
 <section class="admin-hero">
   <div>
     <p class="eyebrow">Admin</p>
-    <h1>Product-wise Sales</h1>
-    <p>See what is selling best and how much revenue each product contributes.</p>
+    <h1>Product Wise Sales Report</h1>
+    <p>Grouped by category with totals and overall revenue.</p>
   </div>
   <div class="admin-actions">
-    <a class="admin-btn secondary" href="{{ url_for('admin_dashboard') }}">Back to Dashboard</a>
+    <a class="admin-btn secondary no-print" href="{{ url_for('admin_dashboard') }}">Back to Dashboard</a>
+    <button class="admin-btn no-print" type="button" onclick="window.print()">Print / Save PDF</button>
   </div>
 </section>
 
-<section class="admin-panel">
-  <div class="table-panel">
-    <table class="admin-table">
-      <thead>
-        <tr>
-          <th>SNO</th>
-          <th>Product</th>
-          <th>Quantity Sold</th>
-          <th>Total Sales (Rs.)</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% if sales_rows %}
-          {% for row in sales_rows %}
-          <tr>
-            <td>{{ loop.index }}</td>
-            <td>{{ row.product_name }}</td>
-            <td>{{ row.total_quantity }}</td>
-            <td>Rs. {{ "%.2f"|format(row.total_sales) }}</td>
-          </tr>
-          {% endfor %}
+<div class="report-container">
+  <div style="display:flex; gap:14px; flex-wrap:wrap; margin-bottom:18px;">
+    <div style="flex:1; min-width:260px; border:1px solid #e5e7eb; border-radius:12px; padding:14px; background:#fff;">
+      <h3 style="margin:0 0 8px 0; font-size:20px; font-weight:800; color:#111827;">CRACCKERS HUB</h3>
+      <div style="color:#374151; font-size:14px; line-height:1.5;">
+        <div>Address: {{ shop.address if shop and shop.address else '' }}</div>
+        <div>Phone: {{ shop.phone if shop and shop.phone else '' }}</div>
+        <div>Email: {{ shop.email if shop and shop.email else '' }}</div>
+        <div>Generated: {{ now_str if now_str else '' }}</div>
+      </div>
+    </div>
 
-          <tr>
-            <td colspan="3" style="text-align:right;"><strong>Total Sales</strong></td>
-            <td><strong>Rs. {{ "%.2f"|format(total_sales) }}</strong></td>
-          </tr>
-        {% else %}
-          <tr>
-            <td colspan="4" style="text-align:center;color:#777;">No sales found.</td>
-          </tr>
-        {% endif %}
-      </tbody>
-    </table>
+    <div style="flex:2; min-width:360px; border:1px solid #e5e7eb; border-radius:12px; padding:14px; background:#fff;">
+      <h3 style="margin:0 0 8px 0; font-size:20px; font-weight:800; color:#111827;">Overall Summary</h3>
+      <div style="display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap:12px;">
+        <div class="metric">Overall Revenue<br><strong>Rs. {{ "%.2f"|format(total_sales) }}</strong></div>
+        <div class="metric">Products Sold (Units)<br><strong>{{ total_units }}</strong></div>
+        <div class="metric">Total Orders<br><strong>{{ total_orders }}</strong></div>
+        <div class="metric">Avg Order Value<br><strong>Rs. {{ "%.2f"|format(avg_order_value) }}</strong></div>
+      </div>
+      <div style="margin-top:12px;" class="metric">Best Selling Category<br><strong>{{ best_selling_category }}</strong></div>
+      <div style="margin-top:6px;" class="metric">Best Selling Product<br><strong>{{ best_selling_product }}</strong></div>
+    </div>
   </div>
-</section>
+
+  {% if sales_groups %}
+    {% for group in sales_groups %}
+      <div class="category-card">
+        <div class="category-card-header">
+          <span class="icon">{{ group.category_icon }}</span>
+          <h2>{{ group.category_name }}</h2>
+          <div class="category-submetrics">
+            <div class="metric">Products Sold<br><strong>{{ group.total_units }}</strong></div>
+            <div class="metric">Revenue<br><strong>Rs. {{ "%.2f"|format(group.total_revenue) }}</strong></div>
+          </div>
+        </div>
+
+        <div style="padding:0 0 10px 0;">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Product</th>
+                <th>Sold</th>
+                <th>Revenue</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in group.rows %}
+                <tr>
+                  <td>{{ row.product_name }}</td>
+                  <td>{{ row.total_quantity }}</td>
+                  <td>Rs. {{ "%.2f"|format(row.total_sales) }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    {% endfor %}
+
+    <div style="display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap:18px; margin-top:18px;">
+      <div class="category-card" style="padding:16px;">
+        <h2 style="margin:0 0 10px 0; font-size:22px; font-weight:800; color:#111827;">Top 5 Selling Products</h2>
+        <table class="admin-table">
+          <thead><tr><th>Product</th><th>Units</th><th>Revenue</th></tr></thead>
+          <tbody>
+            {% for p in top_products %}
+              <tr><td>{{ p.product_name }}</td><td>{{ p.units_sold }}</td><td>Rs. {{ "%.2f"|format(p.revenue) }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="category-card" style="padding:16px;">
+        <h2 style="margin:0 0 10px 0; font-size:22px; font-weight:800; color:#111827;">Top 5 Categories</h2>
+        <table class="admin-table">
+          <thead><tr><th>Category</th><th>Units</th><th>Revenue</th></tr></thead>
+          <tbody>
+            {% for c in top_categories %}
+              <tr><td>{{ c.category_name }}</td><td>{{ c.units_sold }}</td><td>Rs. {{ "%.2f"|format(c.revenue) }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  {% else %}
+    <div class="table-panel" style="text-align:center; color:#777; padding:20px;">No sales found.</div>
+  {% endif %}
+</div>
+
 {% endblock %}
+
+
 
 

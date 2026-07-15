@@ -8,62 +8,129 @@
   <a class="button secondary" href="{{ url_for('contact') }}">Contact Shop</a>
 </section>
 
-<form method="post" class="table-panel shop-products-table">
-  <table class="product-table shop-mobile-table">
-    <thead>
-      <tr>
-        <th>SNO</th>
-        <th>Image</th>
-        <th>Product Name</th>
-        <th>Product Price</th>
-        <th>Quantity</th>
-        <th>Final Price</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for product in products %}
-      <tr data-price="{{ product.price }}" data-offer="{{ product.offer_percentage }}" data-product-id="{{ product.id }}">
-        <td>{{ loop.index }}</td>
-        <td>
-          {% if product.image_url %}
-          <img class="zoomable-image" src="{{ product.image_url }}" alt="{{ product.name }}" data-full-image-url="{{ product.image_url }}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px; cursor: zoom-in;">
-
-          {% else %}
-          <span style="color: #999; font-size: 12px;">No image</span>
-          {% endif %}
-        </td>
-        <td>
-          <strong>{{ product.name }}</strong>
-          {% if product.description %}<br><span style="font-size: 0.9em; color: #666;">{{ product.description }}</span>{% endif %}
-        </td>
-        <td>Rs. {{ "%.2f"|format(product.price) }}</td>
-        <td>
-          <input class="quantity-input" type="number" name="quantity_{{ product.id }}" min="0" value="0">
-        </td>
-        <td class="line-total">Rs. 0.00</td>
-      </tr>
+<form method="post" class="table-panel shop-products-table" id="shop-cart-form">
+  <div class="category-filter-bar">
+    <label class="filter-label">Filter:</label>
+    <select id="category-filter">
+      <option value="all">All Categories</option>
+      {% for g in product_groups %}
+        <option value="cat-{{ g.id }}">{{ g.icon }} {{ g.name }}</option>
       {% endfor %}
-    </tbody>
-    <tfoot>
-      <tr>
-        <td colspan="5">Grand Total</td>
-        <td id="grand-total">Rs. 0.00</td>
-      </tr>
-    </tfoot>
-  </table>
+    </select>
+  </div>
+
+  {% for group in product_groups %}
+  <section class="category-group" id="{{ 'cat-' ~ group.id }}" data-category-id="{{ group.id }}">
+    <header class="category-group-header" role="button" tabindex="0" data-category-dom-id="{{ 'cat-' ~ group.id }}">
+      <span class="category-toggle-icon">▼</span>
+      <strong class="category-title">{{ group.icon }} {{ group.name }}</strong>
+    </header>
+
+    <div class="category-group-body">
+      <table class="product-table shop-mobile-table shop-table-fixed" style="table-layout:fixed;width:100%;border-collapse:collapse;">
+        <thead>
+          <tr>
+            <th style="width:70px;text-align:center;">SNO</th>
+            <th style="width:120px;text-align:center;">Image</th>
+            <th style="width:auto;text-align:left;">Product Name</th>
+            <th style="width:170px;text-align:right;">Product Price</th>
+            <th style="width:140px;text-align:center;">Quantity</th>
+            <th style="width:170px;text-align:right;">Final Price</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for product in group.products %}
+          <tr class="product-row" data-price="{{ product.price }}" data-product-id="{{ product.id }}" data-category-dom-id="{{ 'cat-' ~ group.id }}">
+            <td style="text-align:center;vertical-align:middle;">{{ loop.index }}</td>
+            <td style="text-align:center;vertical-align:middle;">
+              {% if product.image_url %}
+              <img class="zoomable-image" src="{{ product.image_url }}" alt="{{ product.name }}" data-full-image-url="{{ product.image_url }}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px; cursor: zoom-in; margin:0 auto; display:block;">
+              {% else %}
+              <span style="color: #999; font-size: 12px;">No image</span>
+              {% endif %}
+            </td>
+            <td style="text-align:left;vertical-align:middle;">
+              <strong>{{ product.name }}</strong>
+              {% if product.description %}<br><span style="font-size: 0.9em; color: #666;">{{ product.description }}</span>{% endif %}
+              {% set stock_status = get_stock_status(product) %}
+              {% if stock_status['label'] == 'OUT OF STOCK' %}
+                <div style="margin-top:6px;">
+                  <span class="badge {{ stock_status['class'] }}">{{ stock_status['label'] }}</span>
+                </div>
+              {% endif %}
+            </td>
+            <td>Rs. {{ "%.2f"|format(product.price) }}</td>
+            <td>
+              <input class="quantity-input" type="number" name="quantity_{{ product.id }}" min="0" value="0" data-category-dom-id="{{ 'cat-' ~ group.id }}">
+            </td>
+            <td class="line-total">Rs. 0.00</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {% endfor %}
+
   <div class="actions">
+    <div class="grand-total-row">
+      <span>Grand Total</span>
+      <strong id="grand-total">Rs. 0.00</strong>
+    </div>
     <button class="button" type="submit">Checkout</button>
   </div>
 </form>
 
 <script src="{{ url_for('static', filename='js/products.js') }}"></script>
 <script>
-  // Expose current cart to checkout (used by Continue Shopping)
-  // It will be filled on submit by store_cart_panel.
   window.__CURRENT_CART__ = window.__CURRENT_CART__ || [];
 </script>
 <script src="{{ url_for('static', filename='js/restore_cart.js') }}"></script>
 <script src="{{ url_for('static', filename='js/store_cart_panel.js') }}"></script>
 <script src="{{ url_for('static', filename='js/image_zoom.js') }}"></script>
+
+<script>
+  (function(){
+    const filter = document.getElementById('category-filter');
+    const groups = document.querySelectorAll('.category-group');
+
+    function applyFilter(){
+      const val = filter.value;
+      groups.forEach(g => {
+        const domId = g.getAttribute('id');
+        const show = (val === 'all') || (val === domId);
+        g.style.display = show ? '' : 'none';
+      });
+      // recompute totals for visible rows only
+      if (typeof window.__updateShopTotalsForVisibleRows === 'function') window.__updateShopTotalsForVisibleRows();
+    }
+
+    if(filter) filter.addEventListener('change', applyFilter);
+
+    // remember expand/collapse state
+    const storageKeyPrefix = 'crackershub_cat_exp_';
+    groups.forEach(group => {
+      const header = group.querySelector('.category-group-header');
+      const body = group.querySelector('.category-group-body');
+      const toggleIcon = group.querySelector('.category-toggle-icon');
+      const domId = group.getAttribute('id');
+      const saved = localStorage.getItem(storageKeyPrefix + domId);
+      const expanded = saved === null ? true : saved === '1';
+
+      function setExpanded(exp){
+        body.style.display = exp ? '' : 'none';
+        if(toggleIcon) toggleIcon.textContent = exp ? '▲' : '▼';
+        localStorage.setItem(storageKeyPrefix + domId, exp ? '1' : '0');
+      }
+
+      setExpanded(expanded);
+
+      const toggle = () => setExpanded(!(body.style.display === 'none'));
+      header.addEventListener('click', toggle);
+      header.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' ') { e.preventDefault(); toggle(); } });
+    });
+  })();
+</script>
 {% endblock %}
+
 
