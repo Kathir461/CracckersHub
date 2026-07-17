@@ -21,6 +21,22 @@
     <small>Bookings received</small>
   </a>
 
+  <div class="stat-card" aria-label="Daily Revenue">
+    <div class="stat-icon">📅</div>
+    <small>Daily Revenue</small>
+    <strong>Rs. {{ "%.2f"|format(daily_revenue) }}</strong>
+    <small>Today only</small>
+  </div>
+
+  <div class="stat-card" aria-label="Best Seller (Today)">
+    <div class="stat-icon">🏆</div>
+    <small>Best Seller (Today)</small>
+    <strong>{{ daily_best_selling_product }}</strong>
+    <small>Based on units sold</small>
+  </div>
+
+
+
 
 </section>
 

@@ -513,6 +513,33 @@ def admin_dashboard():
     order_count = cursor.fetchone()["count"]
     cursor.execute("SELECT COALESCE(SUM(total_amount), 0) AS total FROM orders")
     sales_total = cursor.fetchone()["total"]
+
+    # Daily analytics (auto resets because we filter by today's date)
+    cursor.execute(
+        """
+        SELECT COALESCE(SUM(oi.line_total), 0) AS revenue
+        FROM orders o
+        JOIN order_items oi ON oi.order_id = o.id
+        WHERE o.created_at >= CURDATE()
+          AND o.created_at < DATE_ADD(CURDATE(), INTERVAL 1 DAY)
+        """
+    )
+    daily_revenue = cursor.fetchone()["revenue"]
+
+    cursor.execute(
+        """
+        SELECT oi.product_name, SUM(oi.quantity) AS units_sold
+        FROM orders o
+        JOIN order_items oi ON oi.order_id = o.id
+        WHERE o.created_at >= CURDATE()
+          AND o.created_at < DATE_ADD(CURDATE(), INTERVAL 1 DAY)
+        GROUP BY oi.product_name
+        ORDER BY units_sold DESC, oi.product_name ASC
+        LIMIT 1
+        """
+    )
+    daily_best_row = cursor.fetchone()
+    daily_best_selling_product = daily_best_row["product_name"] if daily_best_row else "None"
     cursor.execute("SELECT COUNT(*) AS count FROM products WHERE stock_quantity <= 0")
     out_of_stock_count = cursor.fetchone()["count"]
     cursor.execute("SELECT COUNT(*) AS count FROM products WHERE stock_quantity > 0 AND stock_quantity <= COALESCE(low_stock_limit, 10)")
@@ -564,6 +591,8 @@ def admin_dashboard():
         product_count=product_count,
         order_count=order_count,
         sales_total=sales_total,
+        daily_revenue=daily_revenue,
+        daily_best_selling_product=daily_best_selling_product,
         out_of_stock_count=out_of_stock_count,
         low_stock_count=low_stock_count,
         inventory_quantity=inventory_quantity,
@@ -1182,9 +1211,31 @@ def delete_product(product_id):
 def admin_orders():
     db = get_db()
     cursor = db.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM orders ORDER BY created_at DESC")
+    cursor.execute("SELECT id, created_at, customer_name, phone, email, total_amount, payment_method, payment_status FROM orders ORDER BY created_at DESC")
     orders = cursor.fetchall()
     return render_template("admin/orders.html", orders=orders)
+
+
+@app.route("/admin/reset-reports", methods=["POST"])
+@admin_required
+def reset_reports():
+    confirm = request.form.get("confirm", "")
+    typed = (request.form.get("typed_confirm") or "").strip().upper()
+
+    # Require explicit reconfirmation
+    if confirm != "YES" or typed != "RESET":
+        flash("Reset cancelled. Please type RESET to confirm.", "error")
+        return redirect(request.referrer or url_for("admin_dashboard"))
+
+    db = get_db()
+    cursor = db.cursor()
+    cursor.execute("DELETE FROM order_items")
+    cursor.execute("DELETE FROM orders")
+    db.commit()
+    flash("Reports reset successfully (orders & revenue cleared).", "success")
+    return redirect(url_for("admin_dashboard"))
+
+
 
 
 @app.route("/admin/orders/<int:order_id>/cancel", methods=["POST"])

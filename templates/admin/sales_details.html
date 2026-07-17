@@ -97,6 +97,11 @@
   <div class="admin-actions">
     <a class="admin-btn secondary no-print" href="{{ url_for('admin_dashboard') }}">Back to Dashboard</a>
     <button class="admin-btn no-print" type="button" onclick="window.print()">Print / Save PDF</button>
+    <form method="post" action="{{ url_for('reset_reports') }}" style="display:inline;" class="no-print" onsubmit="return (this.typed_confirm.value || '').trim().toUpperCase() === 'RESET';">
+      <input type="text" name="typed_confirm" placeholder="Type RESET" required style="width:120px; margin-right:8px;" />
+      <button class="admin-btn danger" type="submit">Reset Orders & Revenue</button>
+      <input type="hidden" name="confirm" value="YES">
+    </form>
   </div>
 </section>
 

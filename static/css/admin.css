@@ -353,11 +353,25 @@ body.admin-body {
   .admin-panel { padding: 12px; }
   .admin-actions { flex-direction: column; }
   .admin-actions > * { width: 100%; text-align: center; justify-content: center; }
+
+  /* Mobile tables */
   .admin-table { display: block; }
   .admin-table thead { display: none; }
   .admin-table tr { display: block; margin-bottom: 10px; padding: 10px; border: 1px solid var(--border); border-radius: 14px; background: #fcfcff; }
   .admin-table td { display: flex; justify-content: space-between; gap: 8px; padding: 6px 0; border: 0; }
   .admin-table td::before { content: attr(data-label); font-weight: 700; color: var(--muted); flex: 0 0 38%; font-size: 0.72rem; text-transform: uppercase; }
+
+  /* Mobile report cards */
+  .report-container { padding: 10px; }
+  .category-card { margin-bottom: 14px; }
+  .category-card-header { padding: 14px; }
+  .category-submetrics { margin-left: 0; justify-content: flex-start; }
+
+  /* Keep action buttons usable */
+  .no-print { width: auto; }
+  .admin-actions form { width: 100%; }
+
   .admin-compact { flex-direction: column; }
   .admin-compact > * { width: 100%; }
 }
+
