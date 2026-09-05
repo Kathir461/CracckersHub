@@ -27,7 +27,7 @@
     </header>
 
     <div class="category-group-body">
-      <table class="product-table shop-mobile-table shop-table-fixed" style="table-layout:fixed;width:100%;border-collapse:collapse;">
+      <table class="product-table shop-mobile-table shop-table-fixed" style="border-collapse:collapse;">
         <thead>
           <tr>
             <th style="width:70px;text-align:center;">SNO</th>
@@ -41,15 +41,15 @@
         <tbody>
           {% for product in group.products %}
           <tr class="product-row" data-price="{{ product.price }}" data-product-id="{{ product.id }}" data-category-dom-id="{{ 'cat-' ~ group.id }}">
-            <td style="text-align:center;vertical-align:middle;">{{ loop.index }}</td>
-            <td style="text-align:center;vertical-align:middle;">
+            <td style="text-align:center;vertical-align:middle;" data-label="SNO">{{ loop.index }}</td>
+            <td style="text-align:center;vertical-align:middle;" data-label="Image">
               {% if product.image_url %}
               <img class="zoomable-image" src="{{ product.image_url }}" alt="{{ product.name }}" data-full-image-url="{{ product.image_url }}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px; cursor: zoom-in; margin:0 auto; display:block;">
               {% else %}
               <span style="color: #999; font-size: 12px;">No image</span>
               {% endif %}
             </td>
-            <td style="text-align:left;vertical-align:middle;">
+            <td style="text-align:left;vertical-align:middle;" data-label="Product Name">
               <strong>{{ product.name }}</strong>
               {% if product.description %}<br><span style="font-size: 0.9em; color: #666;">{{ product.description }}</span>{% endif %}
               {% set stock_status = get_stock_status(product) %}
@@ -59,11 +59,11 @@
                 </div>
               {% endif %}
             </td>
-            <td>Rs. {{ "%.2f"|format(product.price) }}</td>
-            <td>
+            <td data-label="Product Price">Rs. {{ "%.2f"|format(product.price) }}</td>
+            <td data-label="Quantity">
               <input class="quantity-input" type="number" name="quantity_{{ product.id }}" min="0" value="0" data-category-dom-id="{{ 'cat-' ~ group.id }}">
             </td>
-            <td class="line-total">Rs. 0.00</td>
+            <td class="line-total" data-label="Final Price">Rs. 0.00</td>
           </tr>
           {% endfor %}
         </tbody>
