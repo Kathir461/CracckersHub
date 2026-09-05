@@ -17,7 +17,7 @@
 </section>
 
 <section class="admin-panel">
-  <div class="table-panel">
+  <div class="table-panel admin-table-wrap">
     <table class="admin-table">
       <thead>
         <tr>
@@ -34,14 +34,14 @@
       <tbody>
         {% for order in orders %}
         <tr>
-          <td>#{{ order.id }}</td>
-          <td>{{ order.created_at }}</td>
-          <td>{{ order.customer_name }}</td>
-          <td>{{ order.phone }}</td>
-          <td>{{ order.email }}</td>
-          <td>Rs. {{ order.total_amount }}</td>
-          <td><span class="badge neutral">{{ order.payment_method|upper }} / {{ order.payment_status }}</span></td>
-          <td>
+          <td data-label="Order ID">#{{ order.id }}</td>
+          <td data-label="Date">{{ order.created_at }}</td>
+          <td data-label="Customer">{{ order.customer_name }}</td>
+          <td data-label="Phone">{{ order.phone }}</td>
+          <td data-label="Email">{{ order.email }}</td>
+          <td data-label="Total">Rs. {{ order.total_amount }}</td>
+          <td data-label="Payment"><span class="badge neutral">{{ order.payment_method|upper }} / {{ order.payment_status }}</span></td>
+          <td data-label="Actions">
             <div class="admin-compact">
               <a class="admin-btn secondary" href="{{ url_for('admin_bill', order_id=order.id) }}">Print Bill</a>
               {% if order.payment_status != 'Cancelled' %}

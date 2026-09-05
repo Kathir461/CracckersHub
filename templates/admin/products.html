@@ -33,7 +33,7 @@
 
 
 <section class="admin-panel">
-  <div class="table-panel">
+  <div class="table-panel admin-table-wrap">
     <table class="admin-table">
       <thead>
         <tr>
@@ -54,33 +54,33 @@
       <tbody>
         {% for product in products %}
         <tr>
-          <td>{{ loop.index }}</td>
-          <td>
+          <td data-label="SNO">{{ loop.index }}</td>
+          <td data-label="Image">
             {% if product.image_url %}
             <img class="zoomable-image" src="{{ product.image_url }}" alt="{{ product.name }}" data-full-image-url="{{ product.image_url }}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 10px; cursor: zoom-in;">
             {% else %}
             <span style="color: #999;">No image</span>
             {% endif %}
           </td>
-          <td><input form="edit-{{ product.id }}" name="name" value="{{ product.name }}" required></td>
-          <td><input form="edit-{{ product.id }}" name="price" type="number" step="0.01" min="0" value="{{ product.price }}" required></td>
-          <td>
+          <td data-label="Product"><input form="edit-{{ product.id }}" name="name" value="{{ product.name }}" required></td>
+          <td data-label="Price"><input form="edit-{{ product.id }}" name="price" type="number" step="0.01" min="0" value="{{ product.price }}" required></td>
+          <td data-label="Category">
             <select form="edit-{{ product.id }}" name="category_id" required>
               {% for c in categories %}
                 <option value="{{ c.id }}" {% if product.category_id == c.id %}selected{% endif %}>{{ c.icon }} {{ c.category_name }}</option>
               {% endfor %}
             </select>
           </td>
-          <td><input form="edit-{{ product.id }}" name="stock_quantity" type="number" min="0" value="{{ product.stock_quantity or 0 }}" required></td>
-          <td><input form="edit-{{ product.id }}" name="low_stock_limit" type="number" min="0" value="{{ product.low_stock_limit or 10 }}" required></td>
+          <td data-label="Stock"><input form="edit-{{ product.id }}" name="stock_quantity" type="number" min="0" value="{{ product.stock_quantity or 0 }}" required></td>
+          <td data-label="Low Limit"><input form="edit-{{ product.id }}" name="low_stock_limit" type="number" min="0" value="{{ product.low_stock_limit or 10 }}" required></td>
 
-          <td>
+          <td data-label="Status">
             {% set stock_status = get_stock_status(product) %}
             <span class="badge {{ stock_status['class'] }}">{{ stock_status['label'] }}</span>
           </td>
-          <td><input form="edit-{{ product.id }}" name="description" value="{{ product.description or '' }}"></td>
-          <td><input form="edit-{{ product.id }}" name="is_active" type="checkbox" {% if product.is_active %}checked{% endif %}></td>
-          <td>
+          <td data-label="Description"><input form="edit-{{ product.id }}" name="description" value="{{ product.description or '' }}"></td>
+          <td data-label="Active"><input form="edit-{{ product.id }}" name="is_active" type="checkbox" {% if product.is_active %}checked{% endif %}></td>
+          <td data-label="Actions">
             <div class="admin-compact">
               <input form="edit-{{ product.id }}" name="image" type="file" accept="image/*" style="font-size: 12px;">
               <button class="admin-btn secondary" form="edit-{{ product.id }}" type="submit">Save</button>
