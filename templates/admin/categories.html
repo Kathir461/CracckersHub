@@ -50,117 +50,53 @@
 </section>
 
 <section class="admin-panel">
-  <!--
-    The reorder form is intentionally separate from the row edit/toggle/delete forms.
-    This avoids invalid nested forms and makes the Edit button reliable in all browsers.
-  -->
-  <div class="table-panel admin-table-wrap category-table-wrap">
-    <table class="admin-table modern-category-table">
-      <colgroup>
-        <col class="category-col-icon">
-        <col class="category-col-name">
-        <col class="category-col-description">
-        <col class="category-col-order">
-        <col class="category-col-count">
-        <col class="category-col-count">
-        <col class="category-col-count">
-        <col class="category-col-status">
-        <col class="category-col-actions">
-      </colgroup>
-      <thead>
-        <tr>
-          <th>Icon</th>
-          <th>Category Name</th>
-          <th>Description</th>
-          <th>Display Order</th>
-          <th>Products Count</th>
-          <th>Products In Stock</th>
-          <th>Products Out Of Stock</th>
-          <th>Status</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody id="category-sort-list">
-        {% for category in categories %}
-        <tr draggable="true" data-category-id="{{ category.id }}">
-          <td data-label="Icon">
-            <input
-              form="edit-category-{{ category.id }}"
-              class="category-icon-input"
-              name="icon"
-              value="{{ category.icon or '*' }}"
-              aria-label="Category icon">
-          </td>
-
-          <td data-label="Category Name">
-            <input
-              form="edit-category-{{ category.id }}"
-              class="category-name-input"
-              name="category_name"
-              value="{{ category.category_name }}"
-              required
-              aria-label="Category name">
-          </td>
-
-          <td data-label="Description">
-            <textarea
-              form="edit-category-{{ category.id }}"
-              class="category-description-input"
-              name="description"
-              rows="2"
-              aria-label="Category description">{{ category.description or '' }}</textarea>
-          </td>
-
-          <td data-label="Display Order">
-            <input
-              form="edit-category-{{ category.id }}"
-              class="category-order-input"
-              name="display_order"
-              type="number"
-              min="0"
-              value="{{ category.display_order }}"
-              aria-label="Display order">
-          </td>
-
-          <td data-label="Products Count">{{ category.products_count }}</td>
-          <td data-label="Products In Stock">{{ category.products_in_stock }}</td>
-          <td data-label="Products Out Of Stock">{{ category.products_out_of_stock }}</td>
-
-          <td data-label="Status">
-            <label class="check-row category-status-control">
-              <input
-                form="edit-category-{{ category.id }}"
-                name="is_active"
-                type="checkbox"
-                {% if category.is_active %}checked{% endif %}>
-              <span>{{ 'Active' if category.is_active else 'Disabled' }}</span>
-            </label>
-          </td>
-
-          <td data-label="Actions">
-            <div class="admin-compact category-actions">
-              <button class="admin-btn secondary" form="edit-category-{{ category.id }}" type="submit">Edit</button>
-              <button class="admin-btn secondary" form="toggle-category-{{ category.id }}" type="submit">{{ 'Disable' if category.is_active else 'Enable' }}</button>
-              <a class="admin-btn secondary" href="{{ url_for('admin_products', category_id=category.id) }}">View Products</a>
-              <button class="admin-btn danger" form="delete-category-{{ category.id }}" type="submit">Delete</button>
-            </div>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-
-  <!-- Separate forms: never nested inside the reorder form/table. -->
-  {% for category in categories %}
-  <form id="edit-category-{{ category.id }}" method="post" action="{{ url_for('edit_category', category_id=category.id) }}"></form>
-  <form id="toggle-category-{{ category.id }}" method="post" action="{{ url_for('toggle_category', category_id=category.id) }}"></form>
-  <form id="delete-category-{{ category.id }}" method="post" action="{{ url_for('delete_category', category_id=category.id) }}"></form>
-  {% endfor %}
-
   <form method="post" action="{{ url_for('reorder_categories') }}" id="reorder-form">
     <input type="hidden" name="category_order" id="category-order">
-    <div class="admin-actions category-reorder-actions">
+    <div class="table-panel">
+      <table class="admin-table modern-category-table">
+        <thead>
+          <tr>
+            <th>Icon</th>
+            <th>Category Name</th>
+            <th>Description</th>
+            <th>Display Order</th>
+            <th>Products Count</th>
+            <th>Products In Stock</th>
+            <th>Products Out Of Stock</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="category-sort-list">
+          {% for category in categories %}
+          <tr draggable="true" data-category-id="{{ category.id }}">
+            <td><input form="edit-category-{{ category.id }}" name="icon" value="{{ category.icon or '*' }}"></td>
+            <td><input form="edit-category-{{ category.id }}" name="category_name" value="{{ category.category_name }}" required></td>
+            <td><input form="edit-category-{{ category.id }}" name="description" value="{{ category.description or '' }}"></td>
+            <td><input form="edit-category-{{ category.id }}" name="display_order" type="number" min="0" value="{{ category.display_order }}"></td>
+            <td>{{ category.products_count }}</td>
+            <td>{{ category.products_in_stock }}</td>
+            <td>{{ category.products_out_of_stock }}</td>
+            <td>
+              <label class="check-row"><input form="edit-category-{{ category.id }}" name="is_active" type="checkbox" {% if category.is_active %}checked{% endif %}> {{ 'Active' if category.is_active else 'Disabled' }}</label>
+            </td>
+            <td>
+              <div class="admin-compact">
+                <button class="admin-btn secondary" form="edit-category-{{ category.id }}" type="submit">Edit</button>
+                <button class="admin-btn secondary" form="toggle-category-{{ category.id }}" type="submit">{{ 'Disable' if category.is_active else 'Enable' }}</button>
+                <a class="admin-btn secondary" href="{{ url_for('admin_products', category_id=category.id) }}">View Products</a>
+                <button class="admin-btn danger" form="delete-category-{{ category.id }}" type="submit">Delete</button>
+              </div>
+              <form id="edit-category-{{ category.id }}" method="post" action="{{ url_for('edit_category', category_id=category.id) }}"></form>
+              <form id="toggle-category-{{ category.id }}" method="post" action="{{ url_for('toggle_category', category_id=category.id) }}"></form>
+              <form id="delete-category-{{ category.id }}" method="post" action="{{ url_for('delete_category', category_id=category.id) }}"></form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="admin-actions">
       <button class="admin-btn" type="submit">Save Drag Order</button>
     </div>
   </form>
