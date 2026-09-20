@@ -835,48 +835,191 @@ def admin_categories():
 def add_category():
     db = get_db()
     cursor = db.cursor()
-    cursor.execute(
-        """
-        INSERT INTO categories (category_name, icon, description, display_order, is_active)
-        VALUES (%s, %s, %s, %s, %s)
-        """,
-        (
-            request.form["category_name"].strip(),
-            request.form.get("icon", "*").strip() or "*",
-            request.form.get("description", "").strip(),
-            int(request.form.get("display_order", 0) or 0),
-            1 if request.form.get("is_active") else 0,
-        ),
-    )
-    db.commit()
-    flash("Category added.", "success")
-    return redirect(url_for("admin_categories"))
 
+    try:
+        category_name = request.form.get("category_name", "").strip()
+        icon = request.form.get("icon", "*").strip() or "*"
+        description = request.form.get("description", "").strip()
+
+        # Safely convert display order to an integer.
+        try:
+            display_order = int(
+                request.form.get("display_order", "0") or "0"
+            )
+        except (TypeError, ValueError):
+            display_order = 0
+
+        is_active = 1 if request.form.get("is_active") else 0
+
+        # Validate category name.
+        if not category_name:
+            flash("Category name is required.", "error")
+            return redirect(url_for("admin_categories"))
+
+        # Check for duplicate category names.
+        cursor.execute(
+            """
+            SELECT id
+            FROM categories
+            WHERE category_name = %s
+            LIMIT 1
+            """,
+            (category_name,),
+        )
+
+        existing_category = cursor.fetchone()
+
+        if existing_category:
+            flash(
+                "A category with this name already exists.",
+                "error",
+            )
+            return redirect(url_for("admin_categories"))
+
+        # Insert the category.
+        cursor.execute(
+            """
+            INSERT INTO categories
+                (category_name, icon, description, display_order, is_active)
+            VALUES
+                (%s, %s, %s, %s, %s)
+            """,
+            (
+                category_name,
+                icon,
+                description,
+                display_order,
+                is_active,
+            ),
+        )
+
+        db.commit()
+
+        flash("Category added successfully.", "success")
+
+    except mysql.connector.Error as e:
+        db.rollback()
+
+        print("CATEGORY ADD - MySQL ERROR:")
+        print(e)
+
+        flash(
+            "Unable to add category. Please check the server console.",
+            "error",
+        )
+
+    except Exception as e:
+        db.rollback()
+
+        print("CATEGORY ADD - ERROR:")
+        print(e)
+
+        flash(
+            "Unable to add category.",
+            "error",
+        )
+
+    finally:
+        cursor.close()
+
+    return redirect(url_for("admin_categories"))
 
 @app.route("/admin/categories/<int:category_id>/edit", methods=["POST"])
 @admin_required
 def edit_category(category_id):
     db = get_db()
     cursor = db.cursor()
-    cursor.execute(
-        """
-        UPDATE categories
-        SET category_name = %s, icon = %s, description = %s, display_order = %s, is_active = %s
-        WHERE id = %s
-        """,
-        (
-            request.form["category_name"].strip(),
-            request.form.get("icon", "*").strip() or "*",
-            request.form.get("description", "").strip(),
-            int(request.form.get("display_order", 0) or 0),
-            1 if request.form.get("is_active") else 0,
-            category_id,
-        ),
-    )
-    db.commit()
-    flash("Category updated.", "success")
-    return redirect(url_for("admin_categories"))
 
+    try:
+        category_name = request.form.get("category_name", "").strip()
+        icon = request.form.get("icon", "*").strip() or "*"
+        description = request.form.get("description", "").strip()
+
+        try:
+            display_order = int(
+                request.form.get("display_order", "0") or "0"
+            )
+        except (TypeError, ValueError):
+            display_order = 0
+
+        is_active = 1 if request.form.get("is_active") else 0
+
+        if not category_name:
+            flash("Category name is required.", "error")
+            return redirect(url_for("admin_categories"))
+
+        # Check whether another category already uses this name.
+        cursor.execute(
+            """
+            SELECT id
+            FROM categories
+            WHERE category_name = %s
+              AND id <> %s
+            LIMIT 1
+            """,
+            (category_name, category_id),
+        )
+
+        existing_category = cursor.fetchone()
+
+        if existing_category:
+            flash(
+                "Another category already uses this name.",
+                "error",
+            )
+            return redirect(url_for("admin_categories"))
+
+        cursor.execute(
+            """
+            UPDATE categories
+            SET
+                category_name = %s,
+                icon = %s,
+                description = %s,
+                display_order = %s,
+                is_active = %s
+            WHERE id = %s
+            """,
+            (
+                category_name,
+                icon,
+                description,
+                display_order,
+                is_active,
+                category_id,
+            ),
+        )
+
+        db.commit()
+
+        flash("Category updated successfully.", "success")
+
+    except mysql.connector.Error as e:
+        db.rollback()
+
+        print("CATEGORY EDIT - MySQL ERROR:")
+        print(e)
+
+        flash(
+            "Unable to update category. Please check the server console.",
+            "error",
+        )
+
+    except Exception as e:
+        db.rollback()
+
+        print("CATEGORY EDIT - ERROR:")
+        print(e)
+
+        flash(
+            "Unable to update category.",
+            "error",
+        )
+
+    finally:
+        cursor.close()
+
+    return redirect(url_for("admin_categories"))
 
 @app.route("/admin/categories/<int:category_id>/toggle", methods=["POST"])
 @admin_required

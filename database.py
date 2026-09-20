@@ -1,23 +1,26 @@
 import os
+from pathlib import Path
 
 import mysql.connector
 from dotenv import load_dotenv
 from flask import g
 
-load_dotenv()
-
+# Always load the .env file located beside this database.py file.
+BASE_DIR = Path(__file__).resolve().parent
+load_dotenv(BASE_DIR / ".env")
 
 def get_db():
     if "db" not in g:
         g.db = mysql.connector.connect(
-            host=os.getenv("MYSQL_HOST", "bj57i6fvsto7lojnp4ee-mysql.services.clever-cloud.com"),
+            host=os.getenv("MYSQL_HOST"),
             port=int(os.getenv("MYSQL_PORT", "3306")),
-            user=os.getenv("MYSQL_USER", "ubnflkfheevwwvez"),
-            password=os.getenv("MYSQL_PASSWORD", "VvOoMZAWy8xiUVP862Yp"),
-            database=os.getenv("MYSQL_DATABASE", "bj57i6fvsto7lojnp4ee"),
+            user=os.getenv("MYSQL_USER"),
+            password=os.getenv("MYSQL_PASSWORD"),
+            database=os.getenv("MYSQL_DATABASE"),
+            charset="utf8mb4",
+            collation="utf8mb4_unicode_ci",
         )
     return g.db
-
 
 def close_db(error=None):
     db = g.pop("db", None)
@@ -27,11 +30,13 @@ def close_db(error=None):
 
 def init_db():
     connection = mysql.connector.connect(
-        host=os.getenv("MYSQL_HOST", "bj57i6fvsto7lojnp4ee-mysql.services.clever-cloud.com"),
+        host=os.getenv("MYSQL_HOST"),
         port=int(os.getenv("MYSQL_PORT", "3306")),
-        user=os.getenv("MYSQL_USER", "ubnflkfheevwwvez"),
-        password=os.getenv("MYSQL_PASSWORD", "VvOoMZAWy8xiUVP862Yp"),
-        database=os.getenv("MYSQL_DATABASE", "bj57i6fvsto7lojnp4ee"),
+        user=os.getenv("MYSQL_USER"),
+        password=os.getenv("MYSQL_PASSWORD"),
+        database=os.getenv("MYSQL_DATABASE"),
+        charset="utf8mb4",
+        collation="utf8mb4_unicode_ci",
     )
     cursor = connection.cursor()
 
@@ -40,7 +45,7 @@ def init_db():
         CREATE TABLE IF NOT EXISTS categories (
             id INT AUTO_INCREMENT PRIMARY KEY,
             category_name VARCHAR(150) NOT NULL UNIQUE,
-            icon VARCHAR(20) NOT NULL DEFAULT 'F',
+            icon VARCHAR(50) NOT NULL DEFAULT 'F',
             description TEXT,
             display_order INT NOT NULL DEFAULT 0,
             is_active BOOLEAN NOT NULL DEFAULT TRUE,
@@ -48,6 +53,18 @@ def init_db():
         )
         """
     )
+    try:
+        cursor.execute(
+            """
+            ALTER TABLE categories
+            MODIFY COLUMN icon VARCHAR(50)
+            CHARACTER SET utf8mb4
+            COLLATE utf8mb4_unicode_ci
+            NOT NULL DEFAULT '*'
+            """
+        )
+    except mysql.connector.Error as e:
+        print("Category icon column update skipped:", e)
 
     default_categories = [
         ("Sparklers", "✨", "Classic sparklers for all celebrations.", 1, True),
