@@ -42,7 +42,7 @@ def allowed_file(filename):
 
 
 def save_product_image(image_file):
-    """Upload product image directly to Cloudinary and return secure_url."""
+    """Upload product image to Cloudinary when configured, otherwise save locally."""
     if not image_file:
         return None
 
@@ -66,37 +66,48 @@ def save_product_image(image_file):
     except Exception:
         pass
 
+    # Prefer Cloudinary if it is fully configured.
+    cloudinary_ready = False
     try:
-        # Configure cloudinary (uses CLOUDINARY_* env vars)
         from cloudinary import config as cloudinary_config
         from cloudinary.uploader import upload as cloudinary_upload
 
         cloudinary_config.cloud_name = os.getenv("CLOUDINARY_CLOUD_NAME")
         cloudinary_config.api_key = os.getenv("CLOUDINARY_API_KEY")
         cloudinary_config.api_secret = os.getenv("CLOUDINARY_API_SECRET")
-
         upload_preset = os.getenv("CLOUDINARY_UPLOAD_PRESET")
-        if not cloudinary_config.cloud_name or not cloudinary_config.api_key or not cloudinary_config.api_secret or not upload_preset:
-            flash("Cloudinary is not configured. Check CLOUDINARY_* environment variables.", "error")
-            return None
 
-        # Upload from the in-memory file (FileStorage stream)
-        # cloudinary SDK accepts file-like objects
-        # folder helps organize assets
-        result = cloudinary_upload(
-            image_file,
-            upload_preset=upload_preset,
-            resource_type="image",
-            folder="products",
+        cloudinary_ready = bool(
+            cloudinary_config.cloud_name
+            and cloudinary_config.api_key
+            and cloudinary_config.api_secret
+            and upload_preset
         )
 
-        secure_url = result.get("secure_url")
-        if not secure_url:
-            flash("Cloudinary upload failed (no secure_url).", "error")
+        if cloudinary_ready:
+            result = cloudinary_upload(
+                image_file,
+                upload_preset=upload_preset,
+                resource_type="image",
+                folder="products",
+            )
+            secure_url = result.get("secure_url")
+            if secure_url:
+                return secure_url
+            raise RuntimeError("Cloudinary upload failed (no secure_url).")
+    except Exception:
+        pass
+
+    # Local fallback for development and setups without Cloudinary config.
+    try:
+        original_name = secure_filename(filename)
+        if not original_name:
             return None
-
-        return secure_url
-
+        safe_name = f"{int(time.time())}_{original_name}"
+        save_path = os.path.join(UPLOAD_FOLDER, safe_name)
+        image_file.seek(0)
+        image_file.save(save_path)
+        return url_for("static", filename=f"uploads/{safe_name}", _external=False)
     except Exception as e:
         flash(f"Error uploading image: {str(e)}", "error")
         return None
