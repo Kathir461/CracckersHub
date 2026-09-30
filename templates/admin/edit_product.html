@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="admin-hero">
+  <div><p class="eyebrow">Catalog</p><h1>Edit Product</h1><p>{{ product.name }}</p></div>
+  <a class="admin-btn secondary" href="{{ url_for('admin_products') }}">Back to Products</a>
+</section>
+<section class="admin-panel">
+  <form method="post" enctype="multipart/form-data" class="catalog-form">
+    <div class="full-width product-photo-editor">
+      {% include 'admin/_product_image.html' %}
+      <div><label>Replace photo<input name="image" type="file" accept="image/png,image/jpeg,image/gif,image/webp"></label>
+        <p class="catalog-description">PNG, JPG, GIF or WebP, up to 5MB. If the image is unavailable, upload the original again.</p>
+        {% if product.image_url %}<label class="catalog-checkbox"><input name="remove_image" type="checkbox" value="1"> Remove current photo</label>{% endif %}
+      </div>
+    </div>
+    <label>Product name<input name="name" value="{{ product.name }}" maxlength="150" required></label>
+    <label>Original price (Rs.)<input name="price" type="number" min="0" step="0.01" value="{{ product.price }}" required></label>
+    <label>Category<select name="category_id">
+      <option value="">Uncategorized</option>
+      {% for c in categories %}<option value="{{ c.id }}" {% if product.category_id == c.id %}selected{% endif %}>{{ c.category_name }}</option>{% endfor %}
+    </select></label>
+    <label class="catalog-checkbox"><input name="is_active" type="checkbox" {% if product.is_active %}checked{% endif %}> Visible to customers</label>
+    <label class="full-width">Description<textarea name="description" rows="3">{{ product.description or '' }}</textarea></label>
+    <div class="full-width admin-compact"><button class="admin-btn" type="submit">Save Changes</button><a class="admin-btn secondary" href="{{ url_for('admin_products') }}">Cancel</a></div>
+  </form>
+</section>
+<section class="admin-panel catalog-delete">
+  <div><h2>Delete product</h2><p>Remove this product from the catalog.</p></div>
+  <form method="post" action="{{ url_for('delete_product', product_id=product.id) }}" onsubmit="return confirm('Delete this product? This cannot be undone.');"><button class="admin-btn danger" type="submit">Delete Product</button></form>
+</section>
+<script src="{{ url_for('static', filename='js/image_zoom.js') }}"></script>
+{% endblock %}

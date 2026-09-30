@@ -6,7 +6,7 @@
     <div class="bill-background" aria-hidden="true"></div>
     <div class="bill-logo">
       {% if shop.logo_url %}
-        <alt="{{ shop.name }}>
+        <img src="{{ shop.logo_url }}" alt="{{ shop.name }} logo">
       {% endif %}
     </div>
     <div class="bill-header-text">
@@ -24,7 +24,7 @@
     <p><strong>Email:</strong> {{ order.email }}</p>
   </div>
 
-  <table class="product-table">
+  <div class="bill-table-scroll" role="region" aria-label="Bill items" tabindex="0"><table class="product-table">
     <thead>
       <tr>
         <th>SNO</th>
@@ -47,11 +47,11 @@
     </tbody>
     <tfoot>
       <tr>
-        <td colspan="5">Grand Total</td>
+        <td colspan="4">Grand Total</td>
         <td>Rs. {{ order.total_amount }}</td>
       </tr>
     </tfoot>
-  </table>
+  </table></div>
 
   <div class="actions no-print">
     <a class="button secondary" href="{{ url_for('customer_products') }}">Continue Shopping</a>

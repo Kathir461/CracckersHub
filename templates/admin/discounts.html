@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="admin-hero">
+  <div>
+    <p class="eyebrow">Admin</p>
+    <h1>Product Discounts</h1>
+    <p>Enter a discount percentage from 0 to 100. Set it to 0 to remove the discount.</p>
+  </div>
+  <a class="admin-btn secondary" href="{{ url_for('admin_products') }}">Manage Products</a>
+</section>
+
+<section class="admin-panel">
+  <div class="table-panel admin-table-wrap">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th>Category</th>
+          <th>Original Price</th>
+          <th>Discount (%)</th>
+          <th>Price After Discount</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for product in products %}
+        <tr>
+          <td data-label="Product">{{ product.name }}{% if not product.is_active %} (Inactive){% endif %}</td>
+          <td data-label="Category">{{ product.category_name or 'Uncategorized' }}</td>
+          <td data-label="Original Price">Rs. {{ "%.2f"|format(product.price) }}</td>
+          <td data-label="Discount (%)">
+            <input form="discount-{{ product.id }}" name="discount_percentage" type="number" min="0" max="100" step="0.01" value="{{ product.discount_percentage }}" aria-label="Discount percentage for {{ product.name }}" required>
+          </td>
+          <td data-label="Price After Discount">Rs. {{ "%.2f"|format(product.selling_price) }}</td>
+          <td data-label="Action">
+            <form id="discount-{{ product.id }}" method="post" action="{{ url_for('admin_discounts') }}">
+              <input type="hidden" name="product_id" value="{{ product.id }}">
+              <button class="admin-btn" type="submit">Save Discount</button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6">No products yet. Add products before setting discounts.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

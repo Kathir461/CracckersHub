@@ -1,60 +1,28 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="admin-hero">
-  <div>
-    <p class="eyebrow">Admin</p>
-    <h1>Customer Orders</h1>
-    <p>Review recent purchases and manage payment status from one view.</p>
-  </div>
-  <div class="admin-actions">
-    <a class="admin-btn secondary" href="{{ url_for('admin_products') }}">Manage Products</a>
-    <form method="post" action="{{ url_for('reset_reports') }}" style="display:inline;" class="no-print" onsubmit="return (this.typed_confirm.value || '').trim().toUpperCase() === 'RESET';">
-      <input type="text" name="typed_confirm" placeholder="Type RESET" required style="width:120px; margin-right:8px;" />
-      <button class="admin-btn danger" type="submit">Reset Orders & Revenue</button>
-      <input type="hidden" name="confirm" value="YES">
-    </form>
-  </div>
-</section>
-
+<section class="admin-hero"><div><p class="eyebrow">Orders</p><h1>Customer Orders</h1><p>Find an order, view its bill, and manage cancellations.</p></div><span class="badge neutral">{{ orders|length }} orders shown</span></section>
 <section class="admin-panel">
-  <div class="table-panel admin-table-wrap">
-    <table class="admin-table">
-      <thead>
-        <tr>
-          <th>Order ID</th>
-          <th>Date</th>
-          <th>Customer</th>
-          <th>Phone</th>
-          <th>Email</th>
-          <th>Total</th>
-          <th>Payment</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for order in orders %}
-        <tr>
-          <td data-label="Order ID">#{{ order.id }}</td>
-          <td data-label="Date">{{ order.created_at }}</td>
-          <td data-label="Customer">{{ order.customer_name }}</td>
-          <td data-label="Phone">{{ order.phone }}</td>
-          <td data-label="Email">{{ order.email }}</td>
-          <td data-label="Total">Rs. {{ order.total_amount }}</td>
-          <td data-label="Payment"><span class="badge neutral">{{ order.payment_method|upper }} / {{ order.payment_status }}</span></td>
-          <td data-label="Actions">
-            <div class="admin-compact">
-              <a class="admin-btn secondary" href="{{ url_for('admin_bill', order_id=order.id) }}">Print Bill</a>
-              {% if order.payment_status != 'Cancelled' %}
-              <form method="post" action="{{ url_for('cancel_order', order_id=order.id) }}" style="display:inline;">
-                <button class="admin-btn danger" type="submit">Cancel</button>
-              </form>
-              {% endif %}
-            </div>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
+  <form method="get" class="list-filters">
+    <label>Search orders<input type="search" name="search" value="{{ search }}" placeholder="Order number, name, phone or email"></label>
+    <label>Status<select name="status">{% for value in ['all', 'Paid', 'Pending', 'Cancelled'] %}<option value="{{ value }}" {% if status == value %}selected{% endif %}>{{ 'All statuses' if value == 'all' else value }}</option>{% endfor %}</select></label>
+    <button class="admin-btn" type="submit">Search</button><a class="admin-btn secondary" href="{{ url_for('admin_orders') }}">Clear</a>
+  </form>
+  <div class="table-panel"><table class="admin-table mobile-cards orders-list-table">
+    <thead><tr><th>Order</th><th>Customer</th><th>Total</th><th>Payment</th><th>Actions</th></tr></thead>
+    <tbody>{% for order in orders %}<tr>
+      <td data-label="Order"><div><strong>#{{ order.id }}</strong><p class="catalog-description">{{ order.created_at }}</p></div></td>
+      <td data-label="Customer"><div><strong>{{ order.customer_name }}</strong><p class="catalog-description">{{ order.phone }}{% if order.email %}<br>{{ order.email }}{% endif %}</p></div></td>
+      <td data-label="Total"><strong>Rs. {{ "%.2f"|format(order.total_amount) }}</strong></td>
+      <td data-label="Payment"><div><span class="badge {{ 'danger' if order.payment_status == 'Cancelled' else 'success' if order.payment_status == 'Paid' else 'warning' }}">{{ order.payment_status }}</span><p class="catalog-description">{{ 'Cash on delivery' if order.payment_method == 'gpay' else order.payment_method|upper }}</p></div></td>
+      <td data-label="Actions"><div class="admin-compact"><a class="admin-btn secondary" href="{{ url_for('admin_bill', order_id=order.id) }}">View Bill</a>
+        {% if order.payment_status != 'Cancelled' %}<form method="post" action="{{ url_for('cancel_order', order_id=order.id) }}" onsubmit="return confirm('Cancel this order and restore its stock?');"><button class="admin-btn danger" type="submit">Cancel</button></form>{% endif %}
+      </div></td>
+    </tr>{% else %}<tr><td colspan="5">No orders match your filters.</td></tr>{% endfor %}</tbody>
+  </table></div>
 </section>
+<details class="admin-panel product-create"><summary>Reset order history</summary><p>This deletes all orders and revenue records. Type RESET to confirm.</p>
+  <form method="post" action="{{ url_for('reset_reports') }}" class="list-filters" onsubmit="return (this.typed_confirm.value || '').trim().toUpperCase() === 'RESET';">
+    <label>Confirmation<input name="typed_confirm" placeholder="Type RESET" required></label><input name="confirm" type="hidden" value="YES"><button class="admin-btn danger" type="submit">Reset Orders &amp; Revenue</button>
+  </form>
+</details>
 {% endblock %}

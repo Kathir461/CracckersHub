@@ -49,8 +49,17 @@
     if (!zoomImages || zoomImages.length === 0) return;
 
     zoomImages.forEach((img) => {
+      function showUnavailable() {
+        img.dataset.unavailable = 'true';
+        img.src = '/static/images/product-placeholder.svg';
+        img.alt = 'Image unavailable';
+        img.style.cursor = 'default';
+      }
+      img.addEventListener('error', showUnavailable, { once: true });
+      if (img.complete && img.naturalWidth === 0) showUnavailable();
       img.addEventListener('click', (e) => {
         e.preventDefault();
+        if (img.dataset.unavailable || img.src.endsWith('/product-placeholder.svg')) return;
         const src = img.getAttribute('data-full-image-url') || img.src;
         const alt = img.getAttribute('alt');
         openZoom(src, alt);

@@ -1,0 +1,8 @@
+{% if product.selling_price < product.price %}
+<span class="product-pricing">
+<del class="original-price" aria-label="Original price">Rs. {{ "%.2f"|format(product.price) }}</del>
+<strong class="discounted-price" aria-label="Price after discount">Rs. {{ "%.2f"|format(product.selling_price) }}</strong>
+</span>
+{% else %}
+Rs. {{ "%.2f"|format(product.price) }}
+{% endif %}

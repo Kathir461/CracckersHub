@@ -95,6 +95,7 @@ def init_db():
             id INT AUTO_INCREMENT PRIMARY KEY,
             name VARCHAR(150) NOT NULL,
             price DECIMAL(10, 2) NOT NULL,
+            discount_percentage DECIMAL(5, 2) NOT NULL DEFAULT 0,
             description TEXT,
             image_url VARCHAR(255),
             category_id INT,
@@ -106,6 +107,25 @@ def init_db():
         )
         """
     )
+
+    # Convert earlier rupee discounts once when the percentage column is added.
+    try:
+        cursor.execute("ALTER TABLE products ADD COLUMN discount_percentage DECIMAL(5, 2) NOT NULL DEFAULT 0")
+    except mysql.connector.Error as error:
+        if error.errno != 1060:  # Column already exists.
+            raise
+    else:
+        cursor.execute("SHOW COLUMNS FROM products LIKE 'discount_amount'")
+        if cursor.fetchone():
+            cursor.execute(
+                """
+                UPDATE products
+                SET discount_percentage = CASE WHEN price > 0
+                    THEN LEAST(100, GREATEST(0, ROUND(COALESCE(discount_amount, 0) * 100 / price, 2)))
+                    ELSE 0 END
+                """
+            )
+            connection.commit()
 
     for alter_sql in [
         "ALTER TABLE products ADD COLUMN image_url VARCHAR(255)",

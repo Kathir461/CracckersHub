@@ -10,10 +10,10 @@
 <section class="split-layout">
   <form method="post" class="form-card" id="checkout-form">
 
-    <label>Name<input name="customer_name" required></label>
-    <label>Phone / WhatsApp<input name="phone" required></label>
-    <label>Email<input name="email" type="email"></label>
-    <label>Delivery Address<textarea name="address" required></textarea></label>
+    <label>Name<input name="customer_name" autocomplete="name" required></label>
+    <label>Phone / WhatsApp<input name="phone" type="tel" autocomplete="tel" required></label>
+    <label>Email<input name="email" type="email" autocomplete="email"></label>
+    <label>Delivery Address<textarea name="address" autocomplete="street-address" required></textarea></label>
     <label>Payment Method
       <select name="payment_method" id="payment-method">
         <option value="gpay">Cash On Delivery</option>

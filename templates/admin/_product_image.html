@@ -1,0 +1,2 @@
+{% set image_src = product.image_url|product_image_src %}
+<img class="catalog-image zoomable-image" src="{{ image_src }}" alt="{{ product.name }}" data-full-image-url="{{ image_src }}" loading="lazy">

@@ -1,111 +1,46 @@
 {% extends "base.html" %}
 {% block content %}
 <section class="admin-hero">
-  <div>
-    <p class="eyebrow">Admin</p>
-    <h1>Manage Products</h1>
-    <p>Track stock, update pricing, and keep product visibility aligned.</p>
-  </div>
-  <div class="admin-actions">
-    <a class="admin-btn secondary" href="{{ url_for('admin_orders') }}">View Orders</a>
-  </div>
+  <div><p class="eyebrow">Catalog</p><h1>Products</h1><p>Manage product details, photos, and visibility.</p></div>
+  <a class="admin-btn secondary" href="{{ url_for('admin_inventory') }}">Open Inventory</a>
 </section>
-
-<section class="admin-panel">
-  <form method="post" action="{{ url_for('add_product') }}" class="inline-form" enctype="multipart/form-data">
-    <input name="name" placeholder="Product name" required>
-    <input name="price" type="number" step="0.01" min="0" placeholder="Price" required>
-    <input name="description" placeholder="Description">
-
-    <select name="category_id" required>
-      <option value="" disabled selected>▼ Select Category</option>
-      {% for c in categories %}
-        <option value="{{ c.id }}">{{ c.icon }} {{ c.category_name }}</option>
-      {% endfor %}
-    </select>
-
-    <input name="stock_quantity" type="number" min="0" value="0" placeholder="Initial Stock">
-    <input name="low_stock_limit" type="number" min="0" value="10" placeholder="Low Stock Limit">
-    <input name="image" type="file" accept="image/*" placeholder="Product image">
-    <button class="admin-btn" type="submit">Add Product</button>
+<details class="admin-panel product-create">
+  <summary>Add a product</summary>
+  <form method="post" action="{{ url_for('add_product') }}" class="catalog-form" enctype="multipart/form-data">
+    <label>Product name<input name="name" required maxlength="150"></label>
+    <label>Original price (Rs.)<input name="price" type="number" step="0.01" min="0" required></label>
+    <label>Category<select name="category_id" required><option value="">Select category</option>
+      {% for c in categories %}<option value="{{ c.id }}">{{ c.category_name }}</option>{% endfor %}
+    </select></label>
+    <label>Photo<input name="image" type="file" accept="image/png,image/jpeg,image/gif,image/webp"><small>PNG, JPG, GIF or WebP. Up to 5MB.</small></label>
+    <label class="full-width">Description<textarea name="description" rows="2"></textarea></label>
+    <div class="full-width"><button class="admin-btn" type="submit">Create Product</button></div>
   </form>
-</section>
-
-
+</details>
 <section class="admin-panel">
+  <div class="catalog-toolbar"><h2>Product catalog <span class="badge neutral">{{ products|length }}</span></h2>
+    <form method="get"><label for="catalog-category">Category</label>
+      <select id="catalog-category" name="category_id"><option value="">All categories</option>
+        {% for c in categories %}<option value="{{ c.id }}" {% if selected_category_id == c.id %}selected{% endif %}>{{ c.category_name }}</option>{% endfor %}
+      </select><button class="admin-btn secondary" type="submit">Filter</button>
+    </form>
+  </div>
   <div class="table-panel admin-table-wrap">
-    <table class="admin-table">
-      <thead>
+    <table class="admin-table catalog-table">
+      <thead><tr><th>Photo</th><th>Product</th><th>Category</th><th>Original price</th><th>Visibility</th><th>Actions</th></tr></thead>
+      <tbody>{% for product in products %}
         <tr>
-          <th>SNO</th>
-          <th>Image</th>
-          <th>Product</th>
-          <th>Price</th>
-          <th>Category</th>
-          <th>Stock</th>
-          <th>Low Limit</th>
-          <th>Status</th>
-          <th>Description</th>
-          <th>Active</th>
-          <th>Actions</th>
+          <td data-label="Photo">{% include 'admin/_product_image.html' %}</td>
+          <td data-label="Product"><strong>{{ product.name }}</strong><p class="catalog-description">{{ product.description or 'No description' }}</p></td>
+          <td data-label="Category">{{ product.category_name or 'Uncategorized' }}</td>
+          <td data-label="Original price">Rs. {{ "%.2f"|format(product.price) }}</td>
+          <td data-label="Visibility"><span class="badge {{ 'success' if product.is_active else 'neutral' }}">{{ 'Visible' if product.is_active else 'Hidden' }}</span></td>
+          <td data-label="Actions"><a class="admin-btn secondary" href="{{ url_for('edit_product', product_id=product.id) }}">Edit Product</a></td>
         </tr>
-
-      </thead>
-      <tbody>
-        {% for product in products %}
-        <tr>
-          <td data-label="SNO">{{ loop.index }}</td>
-          <td data-label="Image">
-            {% if product.image_url %}
-            <img class="zoomable-image" src="{{ product.image_url }}" alt="{{ product.name }}" data-full-image-url="{{ product.image_url }}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 10px; cursor: zoom-in;">
-            {% else %}
-            <span style="color: #999;">No image</span>
-            {% endif %}
-          </td>
-          <td data-label="Product"><input form="edit-{{ product.id }}" name="name" value="{{ product.name }}" required></td>
-          <td data-label="Price"><input form="edit-{{ product.id }}" name="price" type="number" step="0.01" min="0" value="{{ product.price }}" required></td>
-          <td data-label="Category">
-            <select form="edit-{{ product.id }}" name="category_id" required>
-              {% for c in categories %}
-                <option value="{{ c.id }}" {% if product.category_id == c.id %}selected{% endif %}>{{ c.icon }} {{ c.category_name }}</option>
-              {% endfor %}
-            </select>
-          </td>
-          <td data-label="Stock"><input form="edit-{{ product.id }}" name="stock_quantity" type="number" min="0" value="{{ product.stock_quantity or 0 }}" required></td>
-          <td data-label="Low Limit"><input form="edit-{{ product.id }}" name="low_stock_limit" type="number" min="0" value="{{ product.low_stock_limit or 10 }}" required></td>
-
-          <td data-label="Status">
-            {% set stock_status = get_stock_status(product) %}
-            <span class="badge {{ stock_status['class'] }}">{{ stock_status['label'] }}</span>
-          </td>
-          <td data-label="Description"><input form="edit-{{ product.id }}" name="description" value="{{ product.description or '' }}"></td>
-          <td data-label="Active"><input form="edit-{{ product.id }}" name="is_active" type="checkbox" {% if product.is_active %}checked{% endif %}></td>
-          <td data-label="Actions">
-            <div class="admin-compact">
-              <input form="edit-{{ product.id }}" name="image" type="file" accept="image/*" style="font-size: 12px;">
-              <button class="admin-btn secondary" form="edit-{{ product.id }}" type="submit">Save</button>
-              <button class="admin-btn danger" type="submit" form="edit-{{ product.id }}" name="remove_image" value="1">Remove</button>
-              <form method="post" action="{{ url_for('adjust_stock', product_id=product.id) }}" style="display:inline;">
-                <input type="hidden" name="delta" value="1">
-                <button class="admin-btn secondary" type="submit">+ Add</button>
-              </form>
-              <form method="post" action="{{ url_for('adjust_stock', product_id=product.id) }}" style="display:inline;">
-                <input type="hidden" name="delta" value="-1">
-                <button class="admin-btn danger" type="submit">- Reduce</button>
-              </form>
-              <button class="admin-btn danger" form="delete-{{ product.id }}" type="submit">Delete</button>
-              <form id="edit-{{ product.id }}" method="post" action="{{ url_for('edit_product', product_id=product.id) }}" enctype="multipart/form-data"></form>
-              <form id="delete-{{ product.id }}" method="post" action="{{ url_for('delete_product', product_id=product.id) }}"></form>
-            </div>
-          </td>
-
-        </tr>
-        {% endfor %}
+        {% else %}<tr><td colspan="6">No products found. Add a product to get started.</td></tr>{% endfor %}
       </tbody>
     </table>
   </div>
 </section>
 <script src="{{ url_for('static', filename='js/image_zoom.js') }}"></script>
 {% endblock %}
-
-

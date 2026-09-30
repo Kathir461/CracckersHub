@@ -7,7 +7,8 @@
     <p>Monitor inventory, orders, and revenue from one place.</p>
   </div>
   <div class="admin-actions">
-    <a class="admin-btn" href="{{ url_for('admin_products') }}">Manage Inventory</a>
+    <a class="admin-btn" href="{{ url_for('admin_inventory') }}">Manage Inventory</a>
+    <a class="admin-btn secondary" href="{{ url_for('admin_discounts') }}">Manage Discounts</a>
     <a class="admin-btn secondary" href="{{ url_for('admin_orders') }}">View Orders</a>
   </div>
 </section>
@@ -42,8 +43,8 @@
 
 <section class="admin-panel">
   <div class="admin-actions">
-    <a class="admin-btn secondary" href="{{ url_for('admin_products') }}">Out of Stock: {{ out_of_stock_count }}</a>
-    <a class="admin-btn secondary" href="{{ url_for('admin_products') }}">Inventory Qty: {{ inventory_quantity }}</a>
+    <a class="admin-btn secondary" href="{{ url_for('admin_inventory') }}">Out of Stock: {{ out_of_stock_count }}</a>
+    <a class="admin-btn secondary" href="{{ url_for('admin_inventory') }}">Inventory Qty: {{ inventory_quantity }}</a>
   </div>
   <div class="table-panel admin-table-wrap">
     <table class="admin-table">
@@ -58,7 +59,7 @@
         <tr>
           <td>Inventory Health</td>
           <td><span class="badge {{ 'warning' if low_stock_count else 'success' }}">{{ 'Needs restock' if low_stock_count else 'Healthy' }}</span></td>
-          <td><a class="admin-btn secondary" href="{{ url_for('admin_products') }}">Open Products</a></td>
+          <td><a class="admin-btn secondary" href="{{ url_for('admin_inventory') }}">Open Inventory</a></td>
         </tr>
         <tr>
           <td>Order Flow</td>

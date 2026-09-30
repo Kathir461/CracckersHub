@@ -4,6 +4,8 @@
 
   const table = document.querySelector('.product-table');
   if (!table) return;
+  const form = table.closest('form');
+  const rows = form.querySelectorAll('tbody tr[data-price]');
 
   const panel = document.createElement('div');
   panel.className = 'store-cart-panel hidden';
@@ -30,7 +32,6 @@
   }
 
 function computeCart() {
-    const rows = table.querySelectorAll('tbody tr[data-price]');
     let count = 0;
     let total = 0;
 
@@ -49,6 +50,7 @@ function computeCart() {
 
   function showOrHide() {
     const { count, total } = computeCart();
+    document.body.classList.toggle('cart-active', count > 0);
 
     if (count > 0) {
       panel.classList.remove('hidden');
@@ -60,7 +62,7 @@ function computeCart() {
   }
 
   // Sync panel on input changes (quantity inputs)
-  const qtyInputs = table.querySelectorAll('.quantity-input');
+  const qtyInputs = form.querySelectorAll('.quantity-input');
   qtyInputs.forEach((input) => {
     input.addEventListener('input', showOrHide);
   });

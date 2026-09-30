@@ -9,7 +9,7 @@
 </section>
 
 <form method="post" class="table-panel">
-  <table class="product-table">
+  <table class="shop-card-table product-table">
     <thead>
       <tr>
         <th>SNO</th>
@@ -22,11 +22,11 @@
     </thead>
     <tbody>
       {% for product in products %}
-      <tr data-price="{{ product.price }}" data-product-id="{{ product.id }}">
+      <tr class="product-row" data-price="{{ product.selling_price }}" data-product-id="{{ product.id }}">
         <td data-label="SNO">{{ loop.index }}</td>
         <td data-label="Image">
           {% if product.image_url %}
-            <img class="zoomable-image" src="{{ product.image_url }}" alt="{{ product.name }}" data-full-image-url="{{ product.image_url }}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px; cursor: zoom-in;">
+            <img class="zoomable-image" src="{{ product.image_url|product_image_src }}" alt="{{ product.name }}" data-full-image-url="{{ product.image_url|product_image_src }}" style="width: 60px; height: 60px; object-fit: contain; border-radius: 4px; cursor: zoom-in;">
           {% else %}
             <span style="color: #999; font-size: 12px;">No image</span>
           {% endif %}
@@ -38,9 +38,9 @@
           <div class="{{ stock_status['class'] }}" style="margin-top: 6px; display: inline-block;">{{ stock_status['label'] }}</div>
           <div style="margin-top: 4px; font-size: 0.9em; color: #666;">Stock: {{ product.stock_quantity or 0 }}</div>
         </td>
-        <td data-label="Product Price">Rs. {{ "%.2f"|format(product.price) }}</td>
+        <td data-label="Product Price">{% include 'customer/_product_price.html' %}</td>
         <td data-label="Quantity">
-          <input class="quantity-input" type="number" name="quantity_{{ product.id }}" min="0" value="0">
+          <input class="quantity-input" type="number" name="quantity_{{ product.id }}" min="0" step="1" inputmode="numeric" aria-label="Quantity for {{ product.name }}" value="0">
         </td>
         <td class="line-total" data-label="Final Price">Rs. 0.00</td>
       </tr>

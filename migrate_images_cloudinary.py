@@ -48,18 +48,14 @@ def main():
     api_secret = os.getenv("CLOUDINARY_API_SECRET")
     upload_preset = os.getenv("CLOUDINARY_UPLOAD_PRESET")
 
-    if not all([cloud_name, api_key, api_secret, upload_preset]):
-        print("Missing Cloudinary env vars. Required: CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET, CLOUDINARY_UPLOAD_PRESET")
+    if not all([cloud_name, api_key, api_secret]):
+        print("Missing Cloudinary env vars. Required: CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET")
         sys.exit(1)
 
     # configure cloudinary
     from cloudinary import config
 
-    config.cloudinary_url = {
-        "cloud_name": cloud_name,
-        "api_key": api_key,
-        "api_secret": api_secret,
-    }
+    config(cloud_name=cloud_name, api_key=api_key, api_secret=api_secret, secure=True)
 
     # Connect DB
     conn = mysql.connector.connect(
@@ -97,12 +93,10 @@ def main():
 
         print(f"[UPLOADING] product_id={product_id} file={local_path}")
         try:
-            result = upload(
-                local_path,
-                upload_preset=upload_preset,
-                resource_type="image",
-                folder="products",
-            )
+            options = {"resource_type": "image", "folder": "products"}
+            if upload_preset:
+                options["upload_preset"] = upload_preset
+            result = upload(local_path, **options)
             secure_url = result.get("secure_url")
             if not secure_url:
                 raise RuntimeError("No secure_url returned")

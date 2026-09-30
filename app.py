@@ -1,7 +1,11 @@
 import os
+import mysql.connector
 import time
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from functools import wraps
+from pathlib import Path
+from urllib.parse import unquote, urlsplit
+from uuid import uuid4
     
 from dotenv import load_dotenv
 from flask import (
@@ -54,63 +58,72 @@ def save_product_image(image_file):
         flash("Only image files (PNG, JPG, JPEG, GIF, WebP) are allowed.", "error")
         return None
 
-    # Size guard (content_length may not exist for some file objects)
-    try:
-        if (
-            hasattr(image_file, "content_length")
-            and image_file.content_length
-            and image_file.content_length > MAX_FILE_SIZE
-        ):
-            flash("File size exceeds 5MB limit.", "error")
+    image_file.seek(0, os.SEEK_END)
+    size = image_file.tell()
+    image_file.seek(0)
+    if size == 0 or size > MAX_FILE_SIZE:
+        flash("Choose a non-empty image smaller than 5MB.", "error")
+        return None
+
+    # Configure the SDK itself, not attributes on its config function.
+    cloudinary_ready = bool(os.getenv("CLOUDINARY_URL") or all(
+        os.getenv(key) for key in ("CLOUDINARY_CLOUD_NAME", "CLOUDINARY_API_KEY", "CLOUDINARY_API_SECRET")
+    ))
+    if cloudinary_ready:
+        try:
+            import cloudinary
+            from cloudinary.uploader import upload
+
+            if not os.getenv("CLOUDINARY_URL"):
+                cloudinary.config(
+                    cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
+                    api_key=os.getenv("CLOUDINARY_API_KEY"),
+                    api_secret=os.getenv("CLOUDINARY_API_SECRET"),
+                    secure=True,
+                )
+            options = {"resource_type": "image", "folder": "products"}
+            if os.getenv("CLOUDINARY_UPLOAD_PRESET"):
+                options["upload_preset"] = os.getenv("CLOUDINARY_UPLOAD_PRESET")
+            result = upload(image_file, **options)
+            if not result.get("secure_url"):
+                raise ValueError("Image upload returned no URL")
+            return result["secure_url"]
+        except Exception:
+            app.logger.warning("Product image upload to Cloudinary failed.")
+            flash("Image upload failed. Please try again; the product has not been saved.", "error")
             return None
-    except Exception:
-        pass
 
-    # Prefer Cloudinary if it is fully configured.
-    cloudinary_ready = False
-    try:
-        from cloudinary import config as cloudinary_config
-        from cloudinary.uploader import upload as cloudinary_upload
-
-        cloudinary_config.cloud_name = os.getenv("CLOUDINARY_CLOUD_NAME")
-        cloudinary_config.api_key = os.getenv("CLOUDINARY_API_KEY")
-        cloudinary_config.api_secret = os.getenv("CLOUDINARY_API_SECRET")
-        upload_preset = os.getenv("CLOUDINARY_UPLOAD_PRESET")
-
-        cloudinary_ready = bool(
-            cloudinary_config.cloud_name
-            and cloudinary_config.api_key
-            and cloudinary_config.api_secret
-            and upload_preset
-        )
-
-        if cloudinary_ready:
-            result = cloudinary_upload(
-                image_file,
-                upload_preset=upload_preset,
-                resource_type="image",
-                folder="products",
-            )
-            secure_url = result.get("secure_url")
-            if secure_url:
-                return secure_url
-            raise RuntimeError("Cloudinary upload failed (no secure_url).")
-    except Exception:
-        pass
-
-    # Local fallback for development and setups without Cloudinary config.
+    # Local development uploads need persistent storage on a hosted deployment.
     try:
         original_name = secure_filename(filename)
         if not original_name:
+            flash("Please choose an image with a valid filename.", "error")
             return None
-        safe_name = f"{int(time.time())}_{original_name}"
-        save_path = os.path.join(UPLOAD_FOLDER, safe_name)
-        image_file.seek(0)
-        image_file.save(save_path)
-        return url_for("static", filename=f"uploads/{safe_name}", _external=False)
-    except Exception as e:
-        flash(f"Error uploading image: {str(e)}", "error")
+        safe_name = f"{uuid4().hex}_{original_name}"
+        image_file.save(os.path.join(UPLOAD_FOLDER, safe_name))
+        return url_for("static", filename=f"uploads/{safe_name}")
+    except OSError:
+        flash("Unable to save the image. Please try again.", "error")
         return None
+
+
+@app.template_filter("product_image_src")
+def product_image_src(value):
+    fallback = url_for("static", filename="images/product-placeholder.svg")
+    value = str(value or "").strip().replace("\\", "/")
+    if value.startswith(("https://", "http://")):
+        return value
+    if value.startswith("uploads/"):
+        value = "static/" + value
+    if value.startswith("static/"):
+        value = "/" + value
+    if value.startswith("/static/"):
+        relative = unquote(urlsplit(value).path[len("/static/"):])
+        root = Path(app.static_folder).resolve()
+        candidate = (root / relative).resolve()
+        if root in candidate.parents and candidate.is_file():
+            return url_for("static", filename=relative)
+    return fallback
 
 
 
@@ -154,9 +167,16 @@ def money(value):
     return Decimal(str(value)).quantize(Decimal("0.01"))
 
 
+def selling_price(product):
+    price = money(product["price"])
+    percentage = Decimal(str(product.get("discount_percentage", 0) or 0))
+    percentage = min(Decimal("100"), max(Decimal("0"), percentage))
+    return (price * (100 - percentage) / 100).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+
 def get_stock_status(product):
     stock = int(product.get("stock_quantity", 0) or 0)
-    limit = int(product.get("low_stock_limit", 10) or 10)
+    limit = int(product.get("low_stock_limit") if product.get("low_stock_limit") is not None else 10)
     if stock <= 0:
         return {"label": "OUT OF STOCK", "class": "stock-badge danger"}
     if stock <= limit:
@@ -213,7 +233,10 @@ def fetch_products(active_only=True, category_id=None):
 
     query += " ORDER BY COALESCE(c.display_order, 9999), COALESCE(c.category_name, 'Uncategorized'), p.name"
     cursor.execute(query, tuple(params))
-    return cursor.fetchall()
+    products = cursor.fetchall()
+    for product in products:
+        product["selling_price"] = selling_price(product)
+    return products
 
 
 def group_products_by_category(products):
@@ -296,7 +319,7 @@ def gift_box():
                 quantity = 0
 
             if quantity > 0:
-                price = money(product["price"])
+                price = selling_price(product)
                 selected_items.append(
                     {
                         "product_id": product["id"],
@@ -332,7 +355,7 @@ def customer_products():
                 quantity = 0
 
             if quantity > 0:
-                price = money(product["price"])
+                price = selling_price(product)
                 selected_items.append(
                     {
                         "product_id": product["id"],
@@ -365,6 +388,24 @@ def checkout():
     if not cart:
         flash("Your cart is empty.", "error")
         return redirect(url_for("customer_products"))
+
+    # Refresh saved carts so discounts changed by the admin also apply at checkout.
+    current_products = {product["id"]: product for product in fetch_products()}
+    prices_changed = False
+    for item in cart:
+        product = current_products.get(item["product_id"])
+        if not product:
+            flash(f"{item['name']} is no longer available. Please update your cart.", "error")
+            return redirect(url_for("customer_products"))
+        price = selling_price(product)
+        prices_changed = prices_changed or money(item["price"]) != price
+        item["price"] = str(price)
+        item["line_total"] = str(money(price * item["quantity"]))
+    session["cart"] = cart
+    if prices_changed:
+        flash("Product prices have changed. Please review your updated total before placing your order.", "success")
+        if request.method == "POST":
+            return redirect(url_for("checkout"))
 
     total = sum(Decimal(item["line_total"]) for item in cart)
 
@@ -833,6 +874,7 @@ def admin_categories():
 
     return render_template(
         "admin/categories.html",
+        title="Categories",
         categories=categories,
         summary=get_category_summary(),
         search=search,
@@ -935,9 +977,15 @@ def add_category():
 
     return redirect(url_for("admin_categories"))
 
-@app.route("/admin/categories/<int:category_id>/edit", methods=["POST"])
+@app.route("/admin/categories/<int:category_id>/edit", methods=["GET", "POST"])
 @admin_required
 def edit_category(category_id):
+    if request.method == "GET":
+        category = next((c for c in fetch_categories() if c["id"] == category_id), None)
+        if not category:
+            flash("Category not found.", "error")
+            return redirect(url_for("admin_categories"))
+        return render_template("admin/edit_category.html", title="Edit Category", category=category)
     db = get_db()
     cursor = db.cursor()
 
@@ -1220,10 +1268,45 @@ def admin_products():
     category_id = request.args.get("category_id", type=int)
     return render_template(
         "admin/products.html",
+        title="Products",
         products=fetch_products(active_only=False, category_id=category_id),
         categories=fetch_categories(active_only=False),
         selected_category_id=category_id,
     )
+
+
+@app.route("/admin/discounts", methods=["GET", "POST"])
+@admin_required
+def admin_discounts():
+    if request.method == "POST":
+        try:
+            discount = Decimal(request.form.get("discount_percentage", ""))
+            if not discount.is_finite() or discount < 0 or discount > 100:
+                raise ValueError
+            if discount != money(discount):
+                raise ValueError
+            product_id = int(request.form.get("product_id", ""))
+        except (InvalidOperation, ValueError):
+            flash("Enter a discount percentage from 0 to 100 with up to two decimal places.", "error")
+            return redirect(url_for("admin_discounts"))
+
+        db = get_db()
+        cursor = db.cursor(dictionary=True)
+        try:
+            cursor.execute("SELECT price FROM products WHERE id = %s FOR UPDATE", (product_id,))
+            product = cursor.fetchone()
+            if not product:
+                db.rollback()
+                flash("Product not found.", "error")
+            else:
+                cursor.execute("UPDATE products SET discount_percentage = %s WHERE id = %s", (money(discount), product_id))
+                db.commit()
+                flash("Product discount saved.", "success")
+        finally:
+            cursor.close()
+        return redirect(url_for("admin_discounts"))
+
+    return render_template("admin/discounts.html", title="Product Discounts", products=fetch_products(active_only=False))
 
 
 
@@ -1232,19 +1315,63 @@ def admin_products():
 def adjust_stock(product_id):
     db = get_db()
     cursor = db.cursor(dictionary=True)
-    cursor.execute("SELECT stock_quantity FROM products WHERE id = %s", (product_id,))
+    cursor.execute("SELECT stock_quantity FROM products WHERE id = %s FOR UPDATE", (product_id,))
     product = cursor.fetchone()
     if not product:
         flash("Product not found.", "error")
-        return redirect(url_for("admin_products"))
+        db.rollback()
+        return redirect(url_for("admin_inventory"))
 
-    delta = int(request.form.get("delta", "0"))
+    try:
+        delta = int(request.form.get("delta", ""))
+        if delta not in (-1, 1):
+            raise ValueError
+    except ValueError:
+        db.rollback()
+        flash("Choose Add 1 or Reduce 1 to adjust stock.", "error")
+        return redirect(url_for("admin_inventory"))
     current_stock = int(product.get("stock_quantity", 0) or 0)
-    new_stock = max(0, current_stock + delta)
+    new_stock = min(2147483647, max(0, current_stock + delta))
     cursor.execute("UPDATE products SET stock_quantity = %s WHERE id = %s", (new_stock, product_id))
     db.commit()
     flash("Stock updated successfully.", "success")
-    return redirect(url_for("admin_products"))
+    return redirect(url_for("admin_inventory"))
+
+
+@app.route("/admin/inventory")
+@admin_required
+def admin_inventory():
+    products = fetch_products(active_only=False)
+    return render_template("admin/inventory.html", title="Inventory", products=products,
+                           total_stock=sum(int(p.get("stock_quantity") or 0) for p in products),
+                           out_of_stock=sum(get_stock_status(p)["label"] == "OUT OF STOCK" for p in products),
+                           low_stock=sum(get_stock_status(p)["label"] == "LOW STOCK" for p in products))
+
+
+@app.route("/admin/inventory/<int:product_id>/edit", methods=["POST"])
+@admin_required
+def edit_inventory(product_id):
+    try:
+        stock = int(request.form.get("stock_quantity", ""))
+        limit = int(request.form.get("low_stock_limit", ""))
+        if not (0 <= stock <= 2147483647 and 0 <= limit <= 2147483647):
+            raise ValueError
+    except ValueError:
+        flash("Stock and low-stock alert must be non-negative whole numbers.", "error")
+        return redirect(url_for("admin_inventory"))
+    db = get_db()
+    cursor = db.cursor()
+    cursor.execute("SELECT id FROM products WHERE id = %s FOR UPDATE", (product_id,))
+    if not cursor.fetchone():
+        db.rollback()
+        flash("Product not found.", "error")
+    else:
+        cursor.execute("UPDATE products SET stock_quantity = %s, low_stock_limit = %s WHERE id = %s",
+                       (stock, limit, product_id))
+        db.commit()
+        flash("Inventory updated.", "success")
+    cursor.close()
+    return redirect(url_for("admin_inventory"))
 
 
 @app.route("/admin/products/add", methods=["POST"])
@@ -1257,11 +1384,13 @@ def add_product():
     if "image" in request.files:
         image_file = request.files["image"]
         image_url = save_product_image(image_file)
+        if image_file.filename and not image_url:
+            return redirect(url_for("admin_products"))
 
     cursor.execute(
         """
-        INSERT INTO products (name, price, description, image_url, category_id, stock_quantity, low_stock_limit)
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
+        INSERT INTO products (name, price, description, image_url, category_id)
+        VALUES (%s, %s, %s, %s, %s)
         """,
 
         (
@@ -1270,19 +1399,24 @@ def add_product():
             request.form.get("description", "").strip(),
             image_url,
             request.form.get("category_id") or None,
-            max(0, int(request.form.get("stock_quantity", 0) or 0)),
-            max(0, int(request.form.get("low_stock_limit", 10) or 10)),
         ),
     )
     db.commit()
-    flash("Product added.", "success")
+    flash("Product added. Set its opening stock on the Inventory page.", "success")
     return redirect(url_for("admin_products"))
 
 
-@app.route("/admin/products/<int:product_id>/edit", methods=["POST"])
+@app.route("/admin/products/<int:product_id>/edit", methods=["GET", "POST"])
 @admin_required
 def edit_product(product_id):
-    print("EDIT_PRODUCT_CALLED", product_id)
+    if request.method == "GET":
+        products = fetch_products(active_only=False)
+        product = next((p for p in products if p["id"] == product_id), None)
+        if not product:
+            flash("Product not found.", "error")
+            return redirect(url_for("admin_products"))
+        return render_template("admin/edit_product.html", title="Edit Product", product=product,
+                               categories=fetch_categories(active_only=False))
 
     db = get_db()
     cursor = db.cursor()
@@ -1294,7 +1428,10 @@ def edit_product(product_id):
     )
 
     result = cursor.fetchone()
-    image_url = result[0] if result else None
+    if not result:
+        flash("Product not found.", "error")
+        return redirect(url_for("admin_products"))
+    image_url = result[0]
 
     # Handle new image upload
     # Upload new image (keeps existing if no new file is selected)
@@ -1302,8 +1439,9 @@ def edit_product(product_id):
         image_file = request.files["image"]
         if image_file and image_file.filename != "":
             new_image_url = save_product_image(image_file)
-            if new_image_url:
-                image_url = new_image_url
+            if not new_image_url:
+                return redirect(url_for("edit_product", product_id=product_id))
+            image_url = new_image_url
 
     # Remove existing image (set to NULL) when requested
     if request.form.get("remove_image") == "1":
@@ -1312,8 +1450,6 @@ def edit_product(product_id):
 
 
     category_id = request.form.get("category_id") or None
-    stock_quantity = max(0, int(request.form.get("stock_quantity", 0) or 0))
-    low_stock_limit = max(0, int(request.form.get("low_stock_limit", 10) or 10))
 
     cursor.execute(
         """
@@ -1324,8 +1460,6 @@ def edit_product(product_id):
             description = %s,
             image_url = %s,
             category_id = %s,
-            stock_quantity = %s,
-            low_stock_limit = %s,
             is_active = %s
         WHERE id = %s
         """,
@@ -1335,8 +1469,6 @@ def edit_product(product_id):
             request.form.get("description", "").strip(),
             image_url,
             category_id,
-            stock_quantity,
-            low_stock_limit,
             1 if request.form.get("is_active") else 0,
             product_id,
         ),
@@ -1365,9 +1497,24 @@ def delete_product(product_id):
 def admin_orders():
     db = get_db()
     cursor = db.cursor(dictionary=True)
-    cursor.execute("SELECT id, created_at, customer_name, phone, email, total_amount, payment_method, payment_status FROM orders ORDER BY created_at DESC")
+    search = request.args.get("search", "").strip()
+    status = request.args.get("status", "all")
+    query = "SELECT id, created_at, customer_name, phone, email, total_amount, payment_method, payment_status FROM orders"
+    conditions, params = [], []
+    if search:
+        conditions.append("(CAST(id AS CHAR) LIKE %s OR customer_name LIKE %s OR phone LIKE %s OR email LIKE %s)")
+        params.extend([f"%{search}%"] * 4)
+    if status in ("Paid", "Pending", "Cancelled"):
+        conditions.append("payment_status = %s")
+        params.append(status)
+    else:
+        status = "all"
+    if conditions:
+        query += " WHERE " + " AND ".join(conditions)
+    query += " ORDER BY created_at DESC"
+    cursor.execute(query, tuple(params))
     orders = cursor.fetchall()
-    return render_template("admin/orders.html", orders=orders)
+    return render_template("admin/orders.html", title="Orders", orders=orders, search=search, status=status)
 
 
 @app.route("/admin/reset-reports", methods=["POST"])

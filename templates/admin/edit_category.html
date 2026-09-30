@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="admin-hero"><div><p class="eyebrow">Categories</p><h1>Edit Category</h1><p>{{ category.category_name }}</p></div><a class="admin-btn secondary" href="{{ url_for('admin_categories') }}">Back to Categories</a></section>
+<section class="admin-panel"><form method="post" class="catalog-form">
+  {% include 'admin/_category_fields.html' %}
+  <div class="full-width admin-compact"><button class="admin-btn" type="submit">Save Changes</button><a class="admin-btn secondary" href="{{ url_for('admin_categories') }}">Cancel</a></div>
+</form></section>
+<section class="admin-panel catalog-delete"><div><h2>Delete category</h2><p>Move its products to another category first.</p></div>
+  <form method="post" action="{{ url_for('delete_category', category_id=category.id) }}" onsubmit="return confirm('Delete this category?');"><button class="admin-btn danger" type="submit">Delete Category</button></form>
+</section>
+{% endblock %}

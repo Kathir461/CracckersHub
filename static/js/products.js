@@ -32,7 +32,7 @@ function calculateTotals({onlyVisible} = { onlyVisible: false }) {
 }
 
 function updateShopTotalsForVisibleRows(){
-  calculateTotals({ onlyVisible: true });
+  calculateTotals({ onlyVisible: false });
 }
 
 window.__updateShopTotalsForVisibleRows = updateShopTotalsForVisibleRows;

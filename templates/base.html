@@ -17,10 +17,15 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
     {% endif %}
     <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}">
+    {% if is_admin_page and request.path != '/admin/login' %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin_catalog.css') }}">
+    {% endif %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile.css') }}">
+    <script src="{{ url_for('static', filename='js/mobile.js') }}" defer></script>
   </head>
   <body class="{{ 'admin-body' if is_admin_page and request.path != '/admin/login' else '' }}">
     <!-- Floating WhatsApp + Phone (hidden on /contact) -->
-    {% if request.path != '/contact' and not request.path.startswith('/admin') %}
+    {% if request.path not in ['/contact', '/checkout'] and not request.path.startswith('/admin') %}
       <div class="floating-contact" aria-hidden="false">
 
         <a id="floating-whatsapp" class="floating-icon whatsapp" href="#" target="_blank" rel="noopener" aria-label="WhatsApp">
@@ -57,13 +62,15 @@
               <span>Admin Portal</span>
             </div>
           </a>
-          <nav>
+          <button class="mobile-menu-toggle" type="button" aria-controls="admin-navigation" aria-expanded="false">Menu</button>
+          <nav id="admin-navigation" aria-label="Admin navigation">
             <a class="{{ 'active' if request.path == url_for('admin_dashboard') else '' }}" href="{{ url_for('admin_dashboard') }}">Dashboard</a>
-            <a class="{{ 'active' if request.path == url_for('admin_categories') else '' }}" href="{{ url_for('admin_categories') }}">Categories</a>
-            <a class="{{ 'active' if request.path == url_for('admin_products') else '' }}" href="{{ url_for('admin_products') }}">Products</a>
+            <a class="{{ 'active' if request.path.startswith(url_for('admin_categories')) else '' }}" href="{{ url_for('admin_categories') }}">Categories</a>
+            <a class="{{ 'active' if request.path.startswith(url_for('admin_products')) else '' }}" href="{{ url_for('admin_products') }}">Products</a>
+            <a class="{{ 'active' if request.path == url_for('admin_discounts') else '' }}" href="{{ url_for('admin_discounts') }}">Discounts</a>
             <a class="{{ 'active' if request.path == url_for('admin_orders') else '' }}" href="{{ url_for('admin_orders') }}">Orders</a>
             <a class="{{ 'active' if request.path == url_for('admin_sales_details') else '' }}" href="{{ url_for('admin_sales_details') }}">Product Wise Sales</a>
-            <a class="{{ 'active' if request.path == url_for('admin_products') else '' }}" href="{{ url_for('admin_products') }}">Inventory</a>
+            <a class="{{ 'active' if request.path == url_for('admin_inventory') else '' }}" href="{{ url_for('admin_inventory') }}">Inventory</a>
 
 
           </nav>
@@ -80,12 +87,7 @@
                 <div class="topbar-subtitle">Keep stock, orders, and sales flowing smoothly.</div>
               </div>
             </div>
-            <div class="topbar-right">
-              <div class="search">
-                <span>🔎</span>
-                <input type="text" placeholder="Quick search..." aria-label="Quick search">
-              </div>
-            </div>
+            <div class="topbar-right"><a class="admin-btn secondary" href="{{ url_for('customer_products') }}">View Store</a></div>
           </div>
           <main class="admin-page">
     {% else %}
@@ -94,7 +96,8 @@
           <img class="brand-logo" src="{{ shop.icon_url }}" alt="{{ shop.name }} logo">
           <span>{{ shop.name }}</span>
         </a>
-        <nav>
+        <button class="mobile-menu-toggle" type="button" aria-controls="customer-navigation" aria-expanded="false">Menu</button>
+        <nav id="customer-navigation" aria-label="Main navigation">
           <button id="installAppButton" class="install-app-button" type="button">
             <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3v12"></path><path d="m7 10 5 5 5-5"></path><path d="M5 20h14"></path></svg>
             <span>Install App</span>
@@ -255,6 +258,7 @@
       const splashScreen = document.getElementById('splashScreen');
       const excludedPaths = ['/checkout', '/admin', '/bill'];
       const pageNavInProgress = { active: false };
+      const compactView = window.matchMedia('(max-width: 820px), (prefers-reduced-motion: reduce)').matches;
 
       const isPageRefresh = performance.navigation.type === 1 ||
                             window.performance?.getEntriesByType("navigation")?.[0]?.type === "reload";
@@ -264,7 +268,7 @@
         const isExcluded = excludedPaths.some(path => currentPath.includes(path));
         const isOrdersPage = currentPath.includes('/history') || currentPath.includes('/order');
 
-        if (!isExcluded && !isPageRefresh && !isOrdersPage && !pageNavInProgress.active) {
+        if (!compactView && !isExcluded && !isPageRefresh && !isOrdersPage && !pageNavInProgress.active) {
           splashScreen.classList.remove('hidden');
           setTimeout(() => {
             splashScreen.classList.add('hidden');
@@ -291,7 +295,7 @@
           const isExcluded = excludedPaths.some(path => href.includes(path));
           const isDifferentPage = href !== currentPath && href !== '#';
 
-          if (isInternal && !isExcluded && isDifferentPage && !pageNavInProgress.active) {
+          if (!compactView && isInternal && !isExcluded && isDifferentPage && !pageNavInProgress.active) {
             event.preventDefault();
             pageNavInProgress.active = true;
 
@@ -308,7 +312,7 @@
       const canvas = document.getElementById('fireworksCanvas');
       const isAdminPage = window.location.pathname.startsWith('/admin');
 
-      if (canvas && !isAdminPage) {
+      if (canvas && !isAdminPage && !compactView) {
         const ctx = canvas.getContext('2d');
 
         canvas.width = window.innerWidth;

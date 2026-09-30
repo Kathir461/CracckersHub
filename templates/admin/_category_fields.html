@@ -1,0 +1,5 @@
+<label>Category name<input name="category_name" value="{{ category.category_name if category else '' }}" maxlength="150" required></label>
+<label>Icon<input name="icon" value="{{ category.icon if category else '*' }}" maxlength="50"></label>
+<label>Display order<input name="display_order" type="number" min="0" step="1" value="{{ category.display_order if category else 0 }}" required><small>Lower numbers appear first.</small></label>
+<label class="catalog-checkbox"><input name="is_active" type="checkbox" {% if not category or category.is_active %}checked{% endif %}> Visible to customers</label>
+<label class="full-width">Description<textarea name="description" rows="3">{{ category.description or '' if category else '' }}</textarea></label>
