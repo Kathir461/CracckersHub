@@ -1,11 +1,14 @@
 import os
 import mysql.connector
+import cloudinary
+import cloudinary.uploader
 import time
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from functools import wraps
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 from uuid import uuid4
+
     
 from dotenv import load_dotenv
 from flask import (
@@ -26,8 +29,18 @@ from database import close_db, get_db, init_db
 # Simple per-request performance logging (admin only)
 import time as _perf_time
 
+BASE_DIR = Path(__file__).resolve().parent
 
-load_dotenv()
+# Load the existing environment files without modifying them.
+load_dotenv(BASE_DIR / ".env")
+load_dotenv(BASE_DIR / ".env.cloudinary", override=False)
+
+cloudinary.config(
+    cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
+    api_key=os.getenv("CLOUDINARY_API_KEY"),
+    api_secret=os.getenv("CLOUDINARY_API_SECRET"),
+    secure=True,
+)
 
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "dev-secret-key")
@@ -46,66 +59,93 @@ def allowed_file(filename):
 
 
 def save_product_image(image_file):
-    """Upload product image to Cloudinary when configured, otherwise save locally."""
-    if not image_file:
+    """Upload product images to Cloudinary on hosted deployments."""
+
+    if not image_file or not image_file.filename:
         return None
 
-    filename = getattr(image_file, "filename", None)
-    if not filename or str(filename).strip() == "":
+    filename = secure_filename(image_file.filename)
+
+    if not filename or not allowed_file(filename):
+        flash(
+            "Only PNG, JPG, JPEG, GIF and WebP images are allowed.",
+            "error",
+        )
         return None
 
-    if not allowed_file(image_file.filename):
-        flash("Only image files (PNG, JPG, JPEG, GIF, WebP) are allowed.", "error")
-        return None
-
+    # Validate file size (maximum 5 MB).
     image_file.seek(0, os.SEEK_END)
-    size = image_file.tell()
+    file_size = image_file.tell()
     image_file.seek(0)
-    if size == 0 or size > MAX_FILE_SIZE:
-        flash("Choose a non-empty image smaller than 5MB.", "error")
+
+    if file_size == 0 or file_size > MAX_FILE_SIZE:
+        flash("Choose a non-empty image smaller than 5 MB.", "error")
         return None
 
-    # Configure the SDK itself, not attributes on its config function.
-    cloudinary_ready = bool(os.getenv("CLOUDINARY_URL") or all(
-        os.getenv(key) for key in ("CLOUDINARY_CLOUD_NAME", "CLOUDINARY_API_KEY", "CLOUDINARY_API_SECRET")
-    ))
-    if cloudinary_ready:
+    cloud_name = os.getenv("CLOUDINARY_CLOUD_NAME")
+    api_key = os.getenv("CLOUDINARY_API_KEY")
+    api_secret = os.getenv("CLOUDINARY_API_SECRET")
+
+    # A Render deployment must not silently save images locally.
+    is_render = bool(os.getenv("RENDER"))
+
+    if cloud_name and api_key and api_secret:
         try:
-            import cloudinary
-            from cloudinary.uploader import upload
+            options = {
+                "resource_type": "image",
+                "folder": "cracckers_hub/products",
+                "secure": True,
+            }
 
-            if not os.getenv("CLOUDINARY_URL"):
-                cloudinary.config(
-                    cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
-                    api_key=os.getenv("CLOUDINARY_API_KEY"),
-                    api_secret=os.getenv("CLOUDINARY_API_SECRET"),
-                    secure=True,
-                )
-            options = {"resource_type": "image", "folder": "products"}
-            if os.getenv("CLOUDINARY_UPLOAD_PRESET"):
-                options["upload_preset"] = os.getenv("CLOUDINARY_UPLOAD_PRESET")
-            result = upload(image_file, **options)
-            if not result.get("secure_url"):
-                raise ValueError("Image upload returned no URL")
-            return result["secure_url"]
+            preset = os.getenv("CLOUDINARY_UPLOAD_PRESET")
+            if preset:
+                options["upload_preset"] = preset
+
+            result = cloudinary.uploader.upload(
+                image_file,
+                **options,
+            )
+
+            image_url = result.get("secure_url")
+
+            if not image_url:
+                raise ValueError("Cloudinary returned no secure image URL.")
+
+            app.logger.info("Product image uploaded to Cloudinary.")
+            return image_url
+
         except Exception:
-            app.logger.warning("Product image upload to Cloudinary failed.")
-            flash("Image upload failed. Please try again; the product has not been saved.", "error")
+            app.logger.exception("Cloudinary product image upload failed.")
+            flash(
+                "Cloudinary upload failed. The product was not saved; "
+                "check the Render logs.",
+                "error",
+            )
             return None
 
-    # Local development uploads need persistent storage on a hosted deployment.
-    try:
-        original_name = secure_filename(filename)
-        if not original_name:
-            flash("Please choose an image with a valid filename.", "error")
-            return None
-        safe_name = f"{uuid4().hex}_{original_name}"
-        image_file.save(os.path.join(UPLOAD_FOLDER, safe_name))
-        return url_for("static", filename=f"uploads/{safe_name}")
-    except OSError:
-        flash("Unable to save the image. Please try again.", "error")
+    if is_render:
+        app.logger.error(
+            "Cloudinary credentials are missing from the Render environment."
+        )
+        flash(
+            "Image storage is not configured. Please contact the administrator.",
+            "error",
+        )
         return None
 
+    # Local storage is allowed for development only.
+    try:
+        os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+        unique_name = f"{uuid4().hex}_{filename}"
+        image_file.save(os.path.join(UPLOAD_FOLDER, unique_name))
+
+        return url_for("static", filename=f"uploads/{unique_name}")
+
+    except OSError:
+        app.logger.exception("Local product image save failed.")
+        flash("Unable to save the image.", "error")
+        return None
 
 @app.template_filter("product_image_src")
 def product_image_src(value):
