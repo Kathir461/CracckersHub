@@ -537,6 +537,7 @@ def customer_bill(order_id):
         "customer/bill.html",
         order=order,
         items=items,
+        admin_view=False,
     )
 
 
@@ -1612,7 +1613,7 @@ def admin_bill(order_id):
     if not order:
         flash("Order not found.", "error")
         return redirect(url_for("admin_orders"))
-    return render_template("admin/bill.html", order=order, items=items)
+    return render_template("customer/bill.html", order=order, items=items, admin_view=True)
 
 
 @app.route('/service-worker.js')

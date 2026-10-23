@@ -1,60 +1,79 @@
-{% extends "base.html" %}
-{% block content %}
-<section class="bill">
-  <div class="bill-header bill-header-left">
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Bill #{{ order.id }} - {{ shop.name }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bill.css') }}">
+  </head>
+  <body>
+    <main class="invoice">
+      <header class="invoice-header">
+        <div class="brand">
+          {% if shop.icon_url %}<img src="{{ shop.icon_url }}" alt="">{% endif %}
+          <div>
+            <p class="eyebrow">Order bill</p>
+            <h1>{{ shop.name }}</h1>
+            <p class="shop-contact">{{ shop.address }}<br>{{ shop.phone }}{% if shop.email %} · {{ shop.email }}{% endif %}</p>
+          </div>
+        </div>
+        <div class="order-meta">
+          <p class="eyebrow">Bill number</p>
+          <strong class="bill-number">#{{ order.id }}</strong>
+          {% if order.created_at %}<p class="order-date">{{ order.created_at.strftime('%d %b %Y, %I:%M %p') }}</p>{% endif %}
+          <button class="print-button no-print" type="button" onclick="window.print()">Print / Save PDF</button>
+        </div>
+      </header>
 
-    <div class="bill-background" aria-hidden="true"></div>
-    <div class="bill-logo">
-      {% if shop.logo_url %}
-        <img src="{{ shop.logo_url }}" alt="{{ shop.name }} logo">
-      {% endif %}
-    </div>
-    <div class="bill-header-text">
-      <p class="eyebrow">Bill #{{ order.id }}</p>
-      <h1>{{ shop.name }}</h1>
-      <p>{{ shop.address }} | {{ shop.phone }} | {{ shop.email }}</p>
-    </div>
+      <section class="customer-details" aria-labelledby="customer-heading">
+        <h2 id="customer-heading">Customer</h2>
+        <p class="customer-name">{{ order.customer_name }}</p>
+        {% if order.phone %}<p>{{ order.phone }}</p>{% endif %}
+        {% if order.email %}<p>{{ order.email }}</p>{% endif %}
+        {% if order.address %}<p class="delivery-address"><strong>Delivery address:</strong><br>{{ order.address }}</p>{% endif %}
+      </section>
 
-    <button class="button secondary" onclick="window.print()">Print Bill</button>
-  </div>
+      <section class="items-section" aria-labelledby="items-heading">
+        <h2 id="items-heading">Purchased products</h2>
+        <table class="items-table">
+          <thead>
+            <tr><th scope="col">#</th><th scope="col">Product</th><th scope="col" class="number">Unit price</th><th scope="col" class="number">Qty</th><th scope="col" class="number">Line total</th></tr>
+          </thead>
+          <tbody>
+            {% for item in items %}
+            <tr>
+              <td>{{ loop.index }}</td>
+              <td class="product-name">{{ item.product_name }}</td>
+              <td class="number">Rs. {{ '%.2f'|format(item.unit_price) }}</td>
+              <td class="number">{{ item.quantity }}</td>
+              <td class="number">Rs. {{ '%.2f'|format(item.line_total) }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" class="empty-items">No purchased products were recorded for this order.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </section>
 
-  <div class="bill-customer">
-    <p><strong>Customer:</strong> {{ order.customer_name }}</p>
-    <p><strong>Phone:</strong> {{ order.phone }}</p>
-    <p><strong>Email:</strong> {{ order.email }}</p>
-  </div>
+      <section class="totals-payment" aria-label="Order totals and payment">
+        <div class="payment-details">
+          <h2>Payment</h2>
+          {% if order.payment_method %}
+            <p><span>Method</span><strong>{{ 'Cash on delivery' if order.payment_method == 'gpay' else order.payment_method|title }}</strong></p>
+          {% endif %}
+          {% if order.payment_status %}<p><span>Status</span><strong class="status">{{ order.payment_status }}</strong></p>{% endif %}
+          {% if order.order_status is defined and order.order_status %}<p><span>Order status</span><strong>{{ order.order_status }}</strong></p>{% endif %}
+        </div>
+        <div class="totals">
+          <p><span>Items total</span><strong>Rs. {{ '%.2f'|format(items|sum(attribute='line_total')) }}</strong></p>
+          <p class="grand-total"><span>Order total</span><strong>Rs. {{ '%.2f'|format(order.total_amount) }}</strong></p>
+        </div>
+      </section>
 
-  <div class="bill-table-scroll" role="region" aria-label="Bill items" tabindex="0"><table class="product-table">
-    <thead>
-      <tr>
-        <th>SNO</th>
-        <th>Product</th>
-        <th>Unit Price</th>
-        <th>Qty</th>
-        <th>Total</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for item in items %}
-      <tr>
-        <td>{{ loop.index }}</td>
-        <td>{{ item.product_name }}</td>
-        <td>Rs. {{ item.unit_price }}</td>
-        <td>{{ item.quantity }}</td>
-        <td>Rs. {{ item.line_total }}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-    <tfoot>
-      <tr>
-        <td colspan="4">Grand Total</td>
-        <td>Rs. {{ order.total_amount }}</td>
-      </tr>
-    </tfoot>
-  </table></div>
-
-  <div class="actions no-print">
-    <a class="button secondary" href="{{ url_for('customer_products') }}">Continue Shopping</a>
-  </div>
-</section>
-{% endblock %}
+      <footer class="invoice-footer">
+        <p>Thank you for shopping with {{ shop.name }}.</p>
+        <a class="back-link no-print" href="{{ url_for('admin_orders') if admin_view else url_for('customer_products') }}">{{ 'Back to orders' if admin_view else 'Continue shopping' }}</a>
+      </footer>
+    </main>
+  </body>
+</html>
